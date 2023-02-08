@@ -1,0 +1,491 @@
+---
+title: Detector Dog CBARQ with Phase 1 and Phase 2 Data
+subtitle: "V 1.0 Both Data Sets and No Chasing Questions"
+author: Liz Hare
+date: "`r Sys.Date()`"
+email: "lizhare@gmail.com"
+output:
+    html_document:
+        toc: true
+        toc_depth: 5
+        number_sections: true
+---
+
+``` {r, setup, include=FALSE, echo=FALSE}
+### load packages
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(knitr)
+library(kableExtra)
+library(gtsummary)
+library(openxlsx)
+library(psych)
+library(correlation)
+library(gluedown) ## inline print lists from R
+
+### get files
+
+rawPhase1 <- read.xlsx("data/Detection-dog-survey.xlsx", sheet = 1)
+rawPhase2 <- read.xlsx("data/DD Survey 20220714-20221104.xlsx", sheet = 1)
+descItems <- read.csv("data/cbarqItemDescriptions.csv")
+
+```
+
+# Data and Code
+
+The R code for the analysis of the combined Phase 1 and Phase 2 data are in a 
+[GitHub repository](https://github.com/LizHareDogs/detectorCBARQ).
+This repository is private for now; send me a request to access it with your GitHub
+user ID at <lizhare@gmail.com>. The goal is open the code for peer review
+and the community.  
+
+Two spreadsheets received from James are imported:
+
+- Phase 1: `Detection-dog-survey.xlsx`
+- Phase 2: `DD Survey 20220714-20221104.xlsx`
+
+``` {r, cleanDemog, results="asis", echo=FALSE}
+source("demogPhase1.R")
+source("demogPhase2.R")
+
+d1 <- bind_rows(rawPhase1, rawPhase2, .id = "phase")
+
+```
+
+
+# Demographic Description
+
+The data analyzed here include
+`r nrow(d1)` dogs with dogs collected in Phase 1
+(`r nrow(rawPhase1)` dogs) and Phase 2 
+(`r nrow(rawPhase2)` dogs). In phase 1, there was a problem collecting 
+data about whether dogs were neutered. Also in phase 1,
+three questions about chasing were excluded. Because they are 
+missing fro most dogs in this data set, they are excluded from the 
+whole analysis (previous analysis of Phase 2 shows the three chasing items
+separate into a factor).
+
+## Sex and Neuter Status
+
+``` {r, sexNeutered, results="asis", echo=FALSE}
+
+sexNeuteredTab <- tbl_summary(d1, by = neuteredF,
+                             include = sexF,
+                             type = everything() ~ "categorical",
+                             statistic = everything() ~ "{n} ({p}%)",
+                             missing = "ifany")
+
+modify_caption(sexNeuteredTab, "Overall Sex and Neuter Status (Caution: lots of missing neuter status data)")
+
+### break out by phase
+
+sexNeuteredPhaseTab <- tbl_strata(d1,
+                                  strata = phase,
+                                  .tbl_fun = ~ .x %>%
+                                      tbl_summary(by = sexF,
+                                                  include = "neuteredF",
+                                                  statistic = everything() ~ "{n} ({p}%)",
+                                                  missing = "ifany") %>%
+modify_caption("Sex and Neuter Status by Phase(Caution lots of missing neuter status data in Phase 1_"))
+sexNeuteredPhaseTab
+                                                 
+```
+
+## Breed and Breed Group
+
+The questionnaire provided a multiple-choice question asking about the 
+dog's breed. We assigned breeds to 
+[AKC breed groups](https://www.akc.org/public-education/resources/general-tips-information/dog-breeds-sorted-groups/) to potentially avoid having a large number of categories with small numbers
+of dogs. If a breed was not listed with AKC, breeds, groups were chosen according to the breed's 
+purpose and history.
+
+Overall, there were `r nrow(d1[!is.na(d1$breedGroup), ])` purebred dogs.
+There were 
+`r nrow(d1[d1$Breed == "Cross-breed", ])` dogs listed as 
+"cross-breed" (*were there instructions to use this specifically
+for known crosses like labradoodles?*) and 
+`r nrow(d1[d1$Breed == "Mixed-breed", ])` dogslisted as "mixed-breed."  
+
+
+Cross-breed
+Mixed-breed
+
+### Breed
+
+``` {r, breed, results="asis", echo=FALSE}
+
+breedTab <- tbl_summary(d1,
+                        include = Breed,
+                        statistic = all_categorical() ~ "{n} ({p}%)")
+breedTab
+
+``` 
+
+### Breed Group
+
+``` {r, breedGroup, results="asis", echo=FALSE}
+breedGroupTab <- tbl_summary(d1,
+                             include = breedGroup,
+                             statistic = all_categorical() ~ "{n} ({p}%)")
+breedGroupTab
+
+
+```
+
+## Country
+
+``` {r, country, results="asis", echo=FALSE}
+countryTab <- tbl_summary(d1,
+                          include = Country,
+                          statistic = all_categorical() ~ "{n} ({p}%)")
+countryTab
+
+```
+
+## Age, Training, and Retirement
+
+``` {r, ageTrainingRet, restults="asis", echo=FALSE}
+s1 <- psych::describe(d1$ageY)
+s1 <- round(s1, 2)
+s1K <- kable(s1, caption="Univariate Statistics for Age in Years")
+kable_styling(s1K)
+
+ageWorkStatusTab <- tbl_summary(d1, by=workingStatusF,
+                                include=ageY,
+                                type = everything() ~ "continuous",
+                                statistic = all_continuous() ~ "{mean} ({sd}) ({min} - {max})",
+                                digits = list(everything() ~ c(2, 2, 2, 2)))
+add_overall(ageWorkStatusTab)
+
+```
+ 
+### Dual Purpose
+
+
+There are `r nrow(d1[d1$duallyTrainedF == "yes", ])` dual purpose dogs
+(`r round(nrow(d1[d1$duallyTrainedF == "yes", ])/nrow(d1), digits=2)*100`%).
+
+#### What breeds are dually trained?
+
+From some of the breeds that show up in this table, I suspect these handlers
+aren't defining "dual purpose" the same way PVWDC does (Golden Retriever, 
+Cocker Spaniel...).  
+
+
+``` {r, dualTrain, results="asis", echo=FALSE}
+d1Dual <- d1[d1$duallyTrainedF == "yes",]
+breedDualTab <- tbl_summary(d1Dual, include=breedF,
+                            statistic = all_categorical() ~ "{n}, ({p}%)",
+                            digits = list(breedF ~ c(0, 1)))
+breedDualTab
+```
+
+## Odors Detected
+
+``` {r, odorVars, results="asis", echo=FALSE}
+odorTab <- tbl_summary(d1, 
+                       include=odoraccelerant:odorother,
+                       type=everything() ~ "dichotomous",
+                       statistic = all_categorical() ~ "{n}, {p}%",
+                       digits = list(all_categorical() ~ c(0, 1)))
+odorTab
+```
+
+### Odors entered under "Other"
+
+There are too many responses to print here 
+(`r nrow(d1[d1$odorother == "yes" & !is.na(d1$odordescription), ])`). 
+Lots of them are nosework-related. Let me know if you want the list.
+
+## Certification
+
+``` {r, certTab, results="asis", echo=FALSE}
+certTab <- tbl_summary(d1,
+                       include=certificatearda:certificateuspda,
+                       type=everything() ~ "dichotomous",
+                       statistic = all_categorical() ~ "{n}, {p}%",
+                       digits = list(everything() ~ c(0, 1)))
+certTab
+```
+
+### Other Certifying organizations
+
+There are too many answers to print here
+(`r nrow(d1[d1$certificateother == "yes" & !is.na(d1$certificatedescription), ])`).  
+
+## Alert Type
+
+``` {r, alertTab, results="asis", echo=FALSE}
+alertTab <- tbl_summary(d1, include=alerttypeF,
+                        type = everything() ~ "categorical",
+                        statistic = all_categorical() ~ "{n}, ({p}%)",
+                        digits = list(all_categorical() ~ c(0,1)))
+alertTab
+```
+
+## Reward System
+
+``` {r, rewardTab, results="asis", echo=FALSE}
+rewardTab <- tbl_summary(d1, include=rewardsystemF,
+                         type = everything() ~ "categorical",
+                         statistic = all_categorical() ~ "{n}, {p}%",
+                         digits = list(all_categorical() ~ c(0,1)))
+rewardTab
+```
+
+## Handler Experience
+
+Experience is measured by the number of dogs handled before the current one.
+
+``` {r, dogsHandledTab, results="asis", echo=FALSE}
+dogsHandledTab <- tbl_summary(d1, include=dogshandledbeforeF,
+                              type = everything () ~ "categorical",
+                              statistic = all_categorical() ~ "{n}, {p}%",
+                              digits = list(all_categorical() ~ c(0,1)))
+dogsHandledTab
+```
+
+## Dogs' Home Environment
+
+``` {r, dogsHome, results="asis", echo=FALSE}
+dogsHomeTab <- tbl_summary(d1, include=dogshomelocationF,
+                           type = everything () ~ "categorical",
+                           statistic = all_categorical() ~ "{n}, {p}%",
+                           digits = list(all_categorical() ~ c(0,1)))
+
+dogsHomeTab
+```
+## Owner Rating of Scent Work Ability and General Behavior and Temperament
+
+### Scent Work
+
+``` {r, scenntWorkDesc, results="asis", echo=FALSE}
+
+scentDesc <- psych::describe(d1$scentrating)
+scentDesc2 <- round(scentDesc, 2)
+scentDescK <- kable(scentDesc2,
+                    caption = "Owners' Rating of Dogs' Scent Detection Work Ability")
+kable_styling(scentDescK)
+```
+
+### General Behavior and Temperament
+
+``` {r, behaviorRate, results="asis", echo=FALSE}
+behavDesc <- psych::describe(d1$behaviorrating)
+behavDesc <- round(behavDesc, 2)
+behavDescK <- kable(behavDesc,
+                    caption = "Owners' Rating of Dogs' General Behavior and Temperament")
+kable_styling(behavDescK)
+```
+
+### Are Scent Work and Behavior Assessment Correlated?
+
+``` {r, assessmentCorrelation, results="asis", echo=FALSE}
+assessmentCorrelation <- cor(d1$scentrating, d1$behaviorrating,
+                             use = "pairwise.complete.obs")
+
+```
+The correlation between scenting ability and general behavior is
+`r round(assessmentCorrelation, 2)`.
+
+## DNA Sample Availability
+
+There were `r nrow(d1[d1$sampleprovidedF == "yes", ])` owners willing to provide DNA samples 
+(`r round(nrow(d1[d1$sampleprovidedF == "yes", ])/nrow(d1)*100)`%).
+
+
+# CBARQ Items' Descriptive Statistics and Plots
+
+``` {r, cleanNames, results="asis", echo=FALSE}
+ddItems <- select(d1, c(TRAIN01:AGG20, FEAR21:SEPR34, EXCITE35:EXCITE38,
+                         ATT39:ATT42, PLAY43:MISC71))
+### are they all numeric?
+### table(sapply(ddItems, class))
+### do they have any weird outliers
+### sapply(ddItems, table, useNA="ifany")
+trainItems <- select(d1, TRAIN01:TRAIN08)
+### class(d1$othersituationsagg)
+### above variable character so not plotted-- all "othersituations* vars
+aggItems <- select(d1, AGG09:AGG20)
+fearItems <- select(d1, FEAR21:FEAR31)
+sepItems <- select(d1, SEPR32:SEPR34)
+excitItems <- select(d1, EXCITE35:EXCITE38)
+attItems <- select(d1, ATT39:ATT42)
+playItems <- select(d1, PLAY43:PLAY46)
+impItems <- select(d1, IMP47:IMP49, IMP50)
+miscItems <- select(d1, MISC51:MISC71)
+
+```
+ 
+
+
+
+``` {r, describeItems, results="asis", echo=FALSE}
+
+
+save(ddItems, file="data/ddCBARQnumeric.Rda")
+
+### summary stats
+### count missing
+
+countMissing <- sapply(ddItems, function(x) sum(is.na(x)))
+means <- round(sapply(ddItems, mean, na.rm=TRUE), 2)
+sds <- round(sapply(ddItems, sd, na.rm=TRUE), 2)
+mins <- sapply(ddItems, min, na.rm=TRUE)
+maxes <- sapply(ddItems, max, na.rm=TRUE)
+skews <- round(sapply(ddItems, skew, na.rm=TRUE), 2)
+kurts <- round(sapply(ddItems, kurtosi, na.rm=TRUE), 2)
+### shapiro-wilk test for normality
+sws <- round(sapply(ddItems, function(x) shapiro.test(x)$statistic), 2)
+swp <- format(sapply(ddItems, function(y) shapiro.test(y)$p.value), scientific = TRUE)
+
+bigDesc <- data.frame(countMissing, means, sds, mins, maxes, skews, kurts, sws, swp)
+colnames(bigDesc) <- c("NMissing", "Mean", "SD", "Min", "Max", "Skewness", "Kurtosis",
+                       "Shapiro-Wilk Score", "Shapiro-Wilk p")
+
+bigDescK <- kable(bigDesc,
+      caption="Descriptive Statistics for Detector-C-BARQ Items")
+
+kable_styling(bigDescK)
+
+largeSkew <- bigDesc[bigDesc$skews < -2 & bigDesc$skews > 2, ]
+
+largeSkewItems <- rownames(bigDesc[bigDesc$Skewness < -2 | bigDesc$Skewness  > 2, ])
+largeKurtItems <- rownames(bigDesc[bigDesc$Kurtosis > 7, ])
+### all items you'd remove
+removeSK <- unique(c(largeSkewItems, largeKurtItems))
+
+
+```
+
+The number of dogs in this analysis is `r nrow(ddItems)`. To use mean or mode imputation, < 5% of the data should be missing. 
+Items should have no more than `r nrow(ddItems)*0.05` missing if these kinds of imputations will be used. 
+
+``` {r, Missing5Percent, results="asis", echo=FALSE}
+
+highMissing <- bigDesc[bigDesc$NMissing > nrow(d1)*0.05, ]
+highMissingK <- kable(highMissing, digits=2,
+                      caption = "Items with > 5 percent missing")
+kable_styling(highMissingK)
+
+```
+
+There are `r nrow(highMissing)` items with > 5\% missing.  
+
+
+According to Watkins (2021), items should be removed if they have skewness > 2.0 or 
+kurtosis > 7.0. These items would violate the assumptions of the Pearson correlation coefficients 
+that factor analysis is based on. (Do we need to consider the items as ordinal discrete values?)  
+
+There are `r length(largeSkewItems)` items with skewness > 2.0 including 
+`r largeSkewItems`.  
+
+There are `r length(largeKurtItems)` items with kurtosis > 7.0 including
+`r largeKurtItems`
+
+For the current data set, `r length(removeSK)`
+items would be removed for the factor analysis. 
+
+### Count Plots
+
+#### Trainability
+
+
+``` {r, plotTrainFreq, results="asis", echo=FALSE, fig.width=12, fig.height=24}
+### plot
+
+
+
+plotFreq <- function(x) {
+    longData <- pivot_longer(x, cols = everything(),
+                             names_to = "item", values_to = "score")
+    ggplot(longData, aes(x = score)) +
+                     geom_bar(na.rm=TRUE) +
+                     facet_wrap(vars(item), ncol=4) +
+                     labs(x = "Score", y="Count",
+                          title="Counts")
+    }
+plotFreq(trainItems) 
+```
+
+#### Aggression
+
+``` {r, plotAggFreq, results="asis", echo=FALSE}
+plotFreq(aggItems)
+```
+
+#### Fear
+
+``` {r, plotFearFreq, results="asis", echo=FALSE}
+plotFreq(fearItems)
+```
+
+
+#### Separation
+
+``` {r, plotSepFreq, results="asis", echo=FALSE}
+plotFreq(sepItems)
+```
+
+
+#### Excitability
+
+``` {r, plotExcitFreq, results="asis", echo=FALSE}
+plotFreq(excitItems)
+```
+
+#### Attention-Seeking
+
+``` {r, plotAttFreq, results="asis", echo=FALSE}
+plotFreq(attItems)
+```
+
+
+
+#### Play
+
+``` {r, plotPlayFreq, results="asis", echo=FALSE}
+plotFreq(playItems)
+```
+
+
+#### Impulsivity
+
+``` {r, plotFrustFreq, results="asis", echo=FALSE}
+plotFreq(impItems)
+```
+
+
+#### Miscellaneous
+
+``` {r, plotMiscFreq, results="asis", echo=FALSE}
+plotFreq(miscItems)
+```
+
+
+# Conclusions for Factor Analysis
+
+Data will ba analyzed with the items as **ordered factors** rather than numeric
+variables for the following reasons:
+
+- Many items have a large number of values of 0  
+- The p-value for the Shapiro test is always near 0, indicating that 
+the data do not come from a normal distribution.  
+- Some items have high skewness and kurtosis. The kurtosis is particularly high 
+for some of the items.
+
+``` {r, convertToOrderedAndSave, results="asis", echo=FALSE, warnings=FALSE}
+### calculating correlation matrixir requires numeric fields even if
+###                                                        you are going to analyze them as ordered
+save(ddItems, file="data/ddCBARQnumeric.Rda")
+
+### use lapply because sapply ended up with character vars
+### input for imputation needs it in a data frame
+ddItemsOrdered <- data.frame(lapply(ddItems, as.ordered))
+
+save(ddItemsOrdered, file="data/ddCBARQordered.Rda")
+
+
+
+```
