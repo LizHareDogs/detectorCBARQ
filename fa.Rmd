@@ -20,7 +20,7 @@ the C-BARQ items, Hopper et al (2008) recommend always reporting it.
 
 Tucker-Lewis Index of Factoring Reliability/Non-Norm Fit Index:
 `r fanal{{nfact}}$TLI`.
-(Should be > 0.9; need reference)
+Should be > 0.9; need reference)
 
 
 ### {{nfact}} Factor Model Communalities
@@ -28,6 +28,23 @@ Tucker-Lewis Index of Factoring Reliability/Non-Norm Fit Index:
 ``` {r, commun{{nfact}}, eval=TRUE, echo=FALSE}
 comTab <- kable(data.frame(fanal{{nfact}}$communality), digits = 2)
 kable_styling(comTab, full_width = FALSE)
+
+```
+
+#### How many communalities < 0.40?
+
+There are `r length(fanal{{nfact}}[fanal{{nfact}}$communality < 0.40])` 
+items with communality < 0.40.
+
+
+``` {r, lowCommTab{{nfact}}, eval=TRUE, echo=FALSE}
+lc{{nfact}} <- data.frame(fanal{{nfact}}$communality)
+lc{{nfact}}$item <- colnames(ddItems)
+lc{{nfact}} <- lc{{nfact}}[lc{{nfact}}[1] < 0.40, ]
+lcTab{{nfact}} <- kable(lc{{nfact}}, digits = 2)
+kable_styling(lcTab{{nfact}})
+datapath <- "data/"
+save(lc{{nfact}}, file=paste0(datapath, "lc", {{nfact}}, ".Rda"))
 
 ```
 

@@ -192,7 +192,7 @@ From the EFAtools documentation:
 >Various methods for performing parallel analysis. This function uses future_lapply for which a parallel processing plan can be selected. To do so, call library(future) and, for example, plan(multisession); see examples.  
 
 Settings Used:    
-- n.obs = 441
+- n.obs = `r nrow(ddItems)`
 - eigen_type = "EFA"
 - fa = "fa" (factor analysis not PCA)
 - fm = "wls" (weighted least squares because pa gave errors and weighted recommended for ordinal data.
@@ -203,7 +203,7 @@ Settings Used:
 
 ``` {r, parallelFactorestimation, results=FALSE, echo=FALSE} 
 parallelOutput <- fa.parallel(postImputedCor,
-                                 n.obs = 441,
+                                 n.obs = nrow(ddItems),
                                 fa = "fa",
                                 fm = "pa",
                                  use = "all.obs",
@@ -238,11 +238,11 @@ kable_styling(mapTabK, full_width = FALSE)
 
 # Factor Analyses
 
-Testing analyses from 11 - 16 factors, since parallel analysis suggested 14 and MAP 
+Testing analyses from 11 - 17 factors, since parallel analysis suggested 16 and MAP 
 suggested 13.
 
 ``` {r, runFAs, results="asis", echo=FALSE}
-src <- lapply(c(11:16), function(nfact) {
+src <- lapply(c(11:17), function(nfact) {
     knit_expand(file = "fa.Rmd")
     })
 
@@ -258,8 +258,7 @@ lowComm <- fanal14$communality[fanal14$communality < 0.40]
 lowComm <- data.frame(lowComm)
 kable(lowComm, digits = 2)
 
-save(lowComm, file = "data/lowComm.Rda")
+save(lowComm, file = "data/lowComm.Rda") 
 
 ```
-
 There are `r nrow(lowComm)` items with low communality.
