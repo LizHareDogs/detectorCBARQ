@@ -1,0 +1,67 @@
+## {{nfact}} Factors
+
+### {{nfact}} Factors Model Fit
+
+``` {r, modelFit{{nfact}}, eval=TRUE}
+
+fanal <- fa(postImputedCor,
+      nfactors = {{nfact}},,
+      n.obs = nrow(ddItems),
+      rotate = "oblimin",
+      fm = "wls")
+```
+
+Although the chi-square test of goodness of fit is sensitive to departures from normality like
+the C-BARQ items, Hopper et al (2008) recommend always reporting it.  
+
+- chi-square: `r fanal$STATISTIC`  
+- degrees of freedom: `r fanal$dof`  
+- P-value for chi-square = `r fanal$PVAL`  
+
+Tucker-Lewis Index of Factoring Reliability/Non-Norm Fit Index:
+`r fanal$TLI`.
+(Should be > 0.9; need reference)
+
+
+### {{nfact}} Factor Model Communalities
+
+``` {r, commun{{nfact}}, eval=TRUE}
+comTab <- kable(data.frame(fanal$communality), digits = 2)
+kable_styling(comTab, full_width = FALSE)
+
+```
+
+### {{nfact}} Factor Model Loadings
+
+
+### {{nfact}} Factor Model Loadings
+
+``` {r, finalLoadings{{nfact}}, eval=TRUE}
+loadMat <- matrix(fanal$loadings, nrow = ncol(ddItems))
+dimnames(loadMat) <- dimnames(fanal$loadings)
+loadingsTab <- kable(loadMat, digits = 2)
+kable_styling(loadingsTab)
+
+### calculate max loading for each item
+loadDF <- data.frame(loadMat)
+loadDF$maximum <- apply(loadDF, 1, max)
+loadDF$largest <- colnames(loadDF)[apply(loadDF, 1, which.max)]
+### sort df by factor
+loadDF <- loadDF[order(loadDF$largest), ]
+```
+
+### {{nfact}} Factor Model Largest Loading Per Item
+
+``` {r, loadwithDesc{{nfact}}, eval=TRUE}
+## merge description with loadings
+loadDF$itemNames <- rownames(loadDF)
+m1 <- merge(loadDF, descItems, by="itemNames", all.x=TRUE, all.y=FALSE)
+### sort by factor 
+
+m1 <- m1[order(m1$largest), ]
+largestLoadings <- kable(m1[ ,c("largest", "maximum", "itemNames", "itemDescriptions")],
+                         digits = 2,
+      caption = "Largest Loading Per Item and Associated Factors, Sorted by Factor")
+kable_styling(largestLoadings, full_width = FALSE)
+
+```
