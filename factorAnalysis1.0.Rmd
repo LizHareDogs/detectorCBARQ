@@ -250,3 +250,16 @@ res = knitr::knit_child(text = unlist(src), quiet = TRUE)
 cat(res, sep = '\n')
 
 ```
+# Low-communality Items to Remove for Next Analysis
+
+``` {r, lowComm, restuls="asis", echo=FALSE}
+
+lowComm <- fanal14$communality[fanal14$communality < 0.40]
+lowComm <- data.frame(lowComm)
+kable(lowComm, digits = 2)
+
+save(lowComm, file = "data/lowComm.Rda")
+
+```
+
+There are `r nrow(lowComm)` items with low communality.
