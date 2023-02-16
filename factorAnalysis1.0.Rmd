@@ -20,6 +20,7 @@ library(lavaan)
 library(EFAtools)
 library(missMDA)
 library(gdata)
+library(corpcor)
 
 load("data/ddCBARQnumeric.Rda")
 load("data/ddCBARQordered.Rda")
