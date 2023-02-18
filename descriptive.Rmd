@@ -24,6 +24,7 @@ library(psych)
 library(correlation)
 library(gluedown) ## inline print lists from R
 
+
 ### get files
 
 rawPhase1 <- read.xlsx("data/Detection-dog-survey.xlsx", sheet = 1)
@@ -51,6 +52,28 @@ source("demogPhase2.R")
 
 d1 <- bind_rows(rawPhase1, rawPhase2, .id = "phase")
 
+### keep only the last date for each dog to remove duplicates
+d1 <- d1 %>%
+    group_by(Name, Email) %>%
+    slice_max(surveyDate, n = 1) %>%
+    ungroup()
+
+### check again for duplicates
+duplicatedDogs <- nrow(d1) - nrow(unique(d1[ ,c("Name", "Email")]))
+dupdogsDF <- get_dupes(d1, c(Name, Email))
+write.csv(dupdogsDF, file="dupdogs.csv", quote=FALSE, row.names=FALSE)
+
+### two dogs have records from the same day
+### count NA per row for each pair
+##rowSums(is.na(dupDogsDF))
+## all.equal(dupDogsDF[1,], k[2, ])
+## all.equal(dupDogsDF[3, ], k[4, ])
+
+### delete by assigned ID number for records with lots of NAs
+### Dog.ID is per record, so extra records can be delted by their ID numbers
+delRecs <- c(162150, 155420)
+d1 <- d1[!d1$Dog.ID %in% delRecs, ]
+
 ```
 
 
@@ -64,7 +87,13 @@ data about whether dogs were neutered. Also in phase 1,
 three questions about chasing were excluded. Because they are 
 missing fro most dogs in this data set, they are excluded from the 
 whole analysis (previous analysis of Phase 2 shows the three chasing items
-separate into a factor).
+separate into a factor).  
+
+After merging the data from Phase 1 and Phase 2, we found that 58 dogs 
+had repeated records. 56 were removed by selecting the record with the
+latest date, because they will have better data on neutering. Two 
+repeated records were completed on the same day, so the ones with fewer
+missing CBARQ items were retained.  
 
 ## Sex and Neuter Status
 
