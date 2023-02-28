@@ -45,7 +45,7 @@ imputedChar <- lapply(imputedFactors, as.character)
 imputedNumeric <- lapply(imputedChar, as.numeric)
 
 imputedNumericDF <- data.frame(imputedNumeric)
-save(imputedNumericDF, file="imputedNumericDF.Rda")
+save(imputedNumericDF, file="data/imputedNumericDF.Rda")
 ```
 
 # Pre-Imputation Tests for Data Suitability for Factor Analysis
@@ -66,9 +66,10 @@ preImputedCor <- lavaan::lavCor(ddItemsOrdered,
                                 ordered = names(ddItemsOrdered),
                                 missing = "pairwise",
                                 cor.smooth = TRUE)
-write.csv(preImputedCor, file="polychoricCorrelations.csv", quote=FALSE, row.names=FALSE)
+write.csv(round(preImputedCor, 3), file="data/polychoricCorrelations.csv", quote=FALSE, row.names=FALSE)
 
 preBartlett <- cortest.bartlett(preImputedCor, n = 1175)
+
 ```
 
 This is a test that the matrix is an identity matrix. This would mean
@@ -109,7 +110,22 @@ KMOoutput$KMO
 postImputedCor <- lavCor(imputedNumericDF,
                         ordered = names(imputedNumericDF),
                                  cor.smooth=TRUE)
-write.csv(data.frame(postImputedCor), file="postImputedCor.csv")
+write.csv(round(data.frame(postImputedCor), 3), file="data/postImputedCor.csv")
+
+## ### which items have low correlations (< 0.3 with all other items?
+## tempMat <- postImputedCor
+## diag(tempMat) <- NA
+## apply(tempMat, 1, max, na.rm=TRUE)
+##     ifelse (x <
+
+
+
+## dditemsOrdered <- droplevels(ddItemsOrdered)
+## lavaanEFA2 <- efa(ddItemsOrdered,
+##                   nfactors = 11:17,
+##                   sample.nobs = nrow(ddItemsOrdered),
+##                   rotation = "oblimin",
+##                   ov.names = colnames(ddItemsOrdered))
 
 ```
 
@@ -204,13 +220,11 @@ Settings Used:
 
 ``` {r, parallelFactorestimation, results=FALSE, echo=FALSE} 
 parallelOutput <- fa.parallel(postImputedCor,
-                                 n.obs = nrow(ddItems),
+                              n.obs = nrow(imputedNumericDF),
                                 fa = "fa",
                                 fm = "pa",
-                                 use = "all.obs",
-                                 cor = "poly",
                               n.iter = 100)
-
+ 
 
 ```
 
@@ -221,13 +235,17 @@ The suggested number of factors is `r parallelOutput$nfact`.
 MAP is recommended as a way to find the number of factors when the items are ordinal. The lowest value indicates the best number of factors.  
 
 ``` {r, MAP, results="asis", echo=FALSE}
-mapFactors <- VSS(postImputedCor,
+mapFactors <- vss(postImputedCor, 
                   n = 17,
                   rotate = "oblimin",
-                  fm="wls",
+                  fm="pa",
                   n.obs = nrow(ddItems),
-                  plot = FALSE,
-                  maxit = 10000)
+                  cor = "poly",
+                  smooth = TRUE,
+                  oblique.scores = TRUE,
+                  plot = FALSE)
+ 
+
 mapTab <- data.frame(seq(1:length(mapFactors$map)), mapFactors$map)
 colnames(mapTab) <- c("Number of Factors", "MAP value")
 
@@ -243,6 +261,8 @@ Testing analyses from 11 - 17 factors, since parallel analysis suggested 16 and 
 suggested 13.
 
 ``` {r, runFAs, results="asis", echo=FALSE}
+
+            
 src <- lapply(c(11:17), function(nfact) {
     knit_expand(file = "fa.Rmd")
     })
