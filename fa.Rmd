@@ -5,10 +5,15 @@
 ``` {r, modelFit{{nfact}}, eval=TRUE, echo=FALSE}
 
 fanal{{nfact}} <- fa(postImputedCor,
-      nfactors = {{nfact}},,
+      nfactors = {{nfact}},
       n.obs = nrow(ddItems),
       rotate = "oblimin",
-      fm = "wls")
+      fm = "pa",
+      smooth = TRUE,
+      cor = "poly")
+
+save(fanal{{nfact}}, file = paste0("data/fanal", {{nfact}}, ".Rda"))
+
 ```
 
 Although the chi-square test of goodness of fit is sensitive to departures from normality like
