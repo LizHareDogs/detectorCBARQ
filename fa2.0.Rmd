@@ -1,0 +1,337 @@
+``` {r, removeLowComm{{nfact}}, results="asis", echo=FALSE}
+ddNum{{nfact}} <- ddItems[ , -which(colnames(ddItems) %in% lc{{nfact}}$item)]
+ddOrd{{nfact}} <- ddItemsOrdered[ , -which(colnames(ddItemsOrdered) %in% lc{{nfact}}$item)]
+
+```
+
+## {{nfact}} Factors
+
+### Imputation of Missing Items ({{nfact}} factors)
+
+include reference on why imputation is better than removing
+observations, pairwise removing is biased, using means isn't good.
+
+Categorical missing values using multiple Correspondence Analysis (also called Missing Fuzzy Average method)
+Josseet al (2010)
+``` {r, impute{{nfact}}, results="asis", echo=FALSE}
+
+imputationResults{{nfact}} <- imputeMCA(ddOrd{{nfact}})
+imputedFactors{{nfact}} <- imputationResults{{nfact}}$completeObs
+save(imputedFactors{{nfact}}, file=paste0("data/imputedFactors", {{nfact}}, ".Rda"))
+imputedChar{{nfact}} <- lapply(imputedFactors{{nfact}}, as.character)
+imputedNumeric{{nfact}} <- lapply(imputedChar{{nfact}}, as.numeric)
+
+imputedNumericDF{{nfact}} <- data.frame(imputedNumeric{{nfact}})
+save(imputedNumericDF{{nfact}}, file="data/imputedNumericDF{{nfact}}.Rda")
+
+```
+
+### {{nfact}}-Factors: Pre-Imputation Tests for Data Suitability for Factor Analysis
+
+#### Bartlett's Test of Sphericity
+
+This function tests whether a correlation matrix is significantly different from an identity matrix (Bartlett, 1951). If the Bartlett's test is not significant, the correlation matrix is not suitable for factor analysis because the variables show too little covariance.  
+
+``` {r, preBartlett{{nfact}}, results="asis", echo=FALSE}
+### calculate polychoric correlation
+
+preImputedCor{{nfact}} <- lavaan::lavCor(ddOrd{{nfact}},
+                                ordered = names(ddOrd{{nfact}}),
+                                missing = "pairwise",
+                                cor.smooth = TRUE)
+write.csv(round(preImputedCor{{nfact}}, 3), file=paste0("data/polychoricCorrelations", {{nfact}}, ".csv"), quote=FALSE, row.names=FALSE)
+
+preBartlett{{nfact}} <- cortest.bartlett(preImputedCor{{nfact}},
+                                         n = nrow(ddOrd{{nfact}}))
+
+```
+
+This is a test that the matrix is an identity matrix. This would mean
+that the correlations were not significantly different from 0.
+If it's not significant, the matrix is not suitable because 
+the variables show too little covariance.  
+
+The chi-squared for the Bartlett test is 
+`r preBartlett{{nfact}}$chisq` with
+`r preBartlett{{nfact}}$df` DF, p = 
+`r format(preBartlett{{nfact}}$p.value, scientific=TRUE)`.
+
+#### Kaiser-Meyer-Olkin Criterion (KMO)
+
+From EFAtools::KMO documentation:
+
+> The KMO represents the degree to which each observed variable is predicted by the other variables in the dataset and with this indicates the suitability for factor analysis  
+
+The numeric version of the dataset is used because stats::cor is used to find
+the correlation and it requires numeric input. Used option for 
+Spearman correlation because of ordered variables.  
+
+
+``` {r, KMOpremputed{{nfact}}, results="asis", echo=FALSE}
+KMOoutput{{nfact}} <- KMO(ddNum{{nfact}}, cor_method = "spearman")
+KMOoutput{{nfact}}$KMO
+
+```
+
+### {{nfact}}-Factor: Post-Imputation Tests for Data Suitability for Factor Analysis
+	
+#### Bartlett's Test of Sphericity
+
+
+``` {r, post-imputationCorrelationMatrix{{nfact}}, results="asis", echo=FALSE}
+### generate polyserial correlation matrix
+### set cor.smooth to TRUE to avoid having not positive definite matrix
+postImputedCor{{nfact}} <- lavCor(imputedNumericDF{{nfact}},
+                        ordered = names(imputedNumericDF{{nfact}}),
+                                 cor.smooth=TRUE)
+write.csv(round(data.frame(postImputedCor{{nfact}}), 3), file="data/postImputedCor{{nfact}}.csv")
+
+```
+
+
+``` {r, postImputationBartlett{{nfact}}, results="asis", echo=FALSE}
+
+postBartlett{{nfact}} <- cortest.bartlett(postImputedCor{{nfact}}, n = nrow(ddOrd{{nfact}}))
+
+```
+
+This is a test that the matrix is an identity matrix. This would mean
+that the correlations were not significantly different from 0.
+If it's not significant, the matrix is not suitable because 
+the variables show too little covariance.  
+  
+
+
+The chi-squared for the Bartlett test is 
+`r postBartlett{{nfact}}$chisq` with
+`r postBartlett{{nfact}}$df` DF, p = 
+`r format(postBartlett{{nfact}}$p.value, scientific = TRUE)`.
+
+
+
+#### {{nfact}}-Factor: Kaiser-Meyer-Olkin Criterion (KMO)
+
+From EFAtools::KMO documentation:
+
+> The KMO represents the degree to which each observed variable is predicted by the other variables in the dataset and with this indicates the suitability for factor analysis  
+
+The numeric version of the dataset is used because stats::cor is used to find
+the correlation and it requires numeric input. Used option for 
+Spearman correlation because of ordered variables.  
+
+
+``` {r, KMOpostImputed{{nfact}}, results="asis", echo=FALSE}
+KMOutput{{nfact}} <- KMO(ddNum{{nfact}}, cor_method = "spearman")
+KMOoutput{{nfact}}$KMO
+
+```
+
+
+### Between-Item Correlations
+
+
+#### Pre-Imputation
+
+For factor analysis, it is recommended that some of the item correlationsshould be 
+between 0.3 and 0.9.
+Polyserial correlations were computed using the `lavCor` function in the `lavaan` package in R 
+with options for ordered factors and pairwise handling of missing values. 
+Pairwise deletion of missing values means that individuals with some missing data are not dropped; 
+their data is used when available.  
+
+The minimum correlation in this data set is `r min(lowerTriangle(preImputedCor{{nfact}}))`.
+The maximum correlation in this data set is `r max(lowerTriangle(preImputedCor{{nfact}}))`.
+
+
+``` {r, preImputedCor{{nfact}}, results="asis", echo=FALSE}
+cor.plot(preImputedCor{{nfact}})
+
+```
+#### Post-Imputation
+
+The post imputation polyserial correlation was also computed using the `lavcor`
+function, but with no setting for missing values since they were imputed and cor.smooth = TRUE
+to avoid having a non-positive-definite matrix to work on in future steps.  
+
+The minimum correlation was `r min(lowerTriangle(postImputedCor{{nfact}}))`.
+The maximum correlation was `r max(lowerTriangle(postImputedCor{{nfact}}))`.
+
+``` {r, postImputedCorrelation{{nfact}}, results="asis", echo=FALSE}
+cor.plot(postImputedCor{{nfact}})
+```
+
+### Estimating Number of Factors
+
+#### Parallel method
+
+From the EFAtools documentation:
+
+>Various methods for performing parallel analysis. This function uses future_lapply for which a parallel processing plan can be selected. To do so, call library(future) and, for example, plan(multisession); see examples.  
+
+Settings Used:    
+- n.obs = `r nrow(ddItems)`
+- eigen_type = "EFA"
+- fa = "fa" (factor analysis not PCA)
+- fm = "wls" (weighted least squares because pa gave errors and weighted recommended for ordinal data.
+- use = "all.obs" (since we have imputed missing values, we can use all data points)
+- cor = "poly" (use polychoric correlation matrix)
+- n.iter = 100 (run for 100 iterations)  
+
+
+``` {r, parallelFactorestimation{{nfact}}, results=FALSE, echo=FALSE} 
+parallelOutput{{nfact}} <- fa.parallel(postImputedCor{{nfact}},
+                              n.obs = nrow(imputedNumericDF{{nfact}}),
+                                fa = "fa",
+                                fm = "pa",
+                              n.iter = 100)
+ 
+
+```
+
+The suggested number of factors is `r parallelOutput{{nfact}}$nfact`.  
+
+#### Minimum Average Partial
+
+MAP is recommended as a way to find the number of factors when the items are ordinal. The lowest value indicates the best number of factors.  
+
+``` {r, MAP{{nfact}}, results="asis", echo=FALSE}
+mapFactors{{nfact}} <- vss(postImputedCor{{nfact}}, 
+                  n = 18,
+                  rotate = "oblimin",
+                  fm="pa",
+                  n.obs = nrow(ddItems),
+                  smooth = TRUE,
+                  plot = FALSE,
+				  cor = "poly",
+                  maxit = 10000)
+ 
+
+mapTab{{nfact}} <- data.frame(seq(1:length(mapFactors{{nfact}}$map)),
+                              mapFactors{{nfact}}$map)
+colnames(mapTab{{nfact}}) <- c("Number of Factors", "MAP value")
+
+mapTabK{{nfact}} <- kable(mapTab{{nfact}}, digits = 4, row.names=FALSE)
+kable_styling(mapTabK{{nfact}}, full_width = FALSE)
+
+```
+
+### Factor Analysis for {{nfact}} Factors
+
+#### {{nfact}} Factors Model Fit
+
+``` {r, modelFit{{nfact}}, eval=TRUE, echo=FALSE}
+
+fanal{{nfact}} <- fa(postImputedCor{{nfact}},
+      nfactors = {{nfact}},
+      n.obs = nrow(ddOrd{{nfact}}),
+      rotate = "oblimin",
+      fm = "pa",
+      smooth = TRUE,
+      cor = "poly")
+
+save(fanal{{nfact}}, file = paste0("data/fanal2.", {{nfact}}, ".Rda"))
+
+```
+
+Although the chi-square test of goodness of fit is sensitive to departures from normality like
+the C-BARQ items, Hopper et al (2008) recommend always reporting it.  
+
+- chi-square: `r fanal{{nfact}}$STATISTIC`  
+- degrees of freedom: `r fanal{{nfact}}$dof`  
+- P-value for chi-square = `r format(fanal{{nfact}}$PVAL, scientific = TRUE)`  
+
+Tucker-Lewis Index of Factoring Reliability/Non-Norm Fit Index:
+`r fanal{{nfact}}$TLI`.
+Should be > 0.9; need reference)
+
+
+#### {{nfact}} Factor Model Communalities
+
+``` {r, commun{{nfact}}, eval=TRUE, echo=FALSE}
+comTab <- kable(data.frame(fanal{{nfact}}$communality), digits = 2)
+kable_styling(comTab, full_width = FALSE)
+
+```
+
+#### How many communalities < 0.40?
+
+There are `r length(fanal{{nfact}}[fanal{{nfact}}$communality < 0.40])` 
+items with communality < 0.40.
+
+
+``` {r, lowCommTab{{nfact}}, eval=TRUE, echo=FALSE}
+lc{{nfact}} <- data.frame(fanal{{nfact}}$communality)
+lc{{nfact}}$item <- colnames(ddOrd{{nfact}})
+lc{{nfact}} <- lc{{nfact}}[lc{{nfact}}[1] < 0.40, ]
+lcTab{{nfact}} <- kable(lc{{nfact}}, digits = 2)
+kable_styling(lcTab{{nfact}})
+datapath <- "data/"
+save(lc{{nfact}}, file=paste0(datapath, "lc2.", {{nfact}}, ".Rda"))
+
+```
+
+#### {{nfact}} Factor Model Loadings
+
+``` {r, finalLoadings{{nfact}}, eval=TRUE, echo=FALSE}
+loadMat <- matrix(fanal{{nfact}}$loadings, nrow = ncol(ddOrd{{nfact}}))
+dimnames(loadMat) <- dimnames(fanal{{nfact}}$loadings)
+loadingsTab <- kable(loadMat, digits = 2)
+kable_styling(loadingsTab)
+
+### calculate max loading for each item
+loadDF <- data.frame(loadMat)
+loadDF$maximum <- apply(loadDF, 1, max)
+loadDF$largest <- colnames(loadDF)[apply(loadDF, 1, which.max)]
+### sort df by factor
+loadDF <- loadDF[order(loadDF$largest), ]
+```
+
+##### {{nfact}} Factor Model Largest Loading Per Item
+
+``` {r, loadwithDesc{{nfact}}, eval=TRUE, echo=FALSE}
+## merge description with loadings
+loadDF$itemNames <- rownames(loadDF)
+m1 <- merge(loadDF, descItems, by="itemNames", all.x=TRUE, all.y=FALSE)
+### sort by factor 
+
+m1 <- m1[order(m1$largest), ]
+largestLoadings <- kable(m1[ ,c("largest", "maximum", "itemNames", "itemDescriptions")],
+                         digits = 2,
+      caption = "Largest Loading Per Item and Associated Factors, Sorted by Factor")
+kable_styling(largestLoadings, full_width = FALSE)
+
+```
+### {{nfact}} Model Reliability Measures
+
+``` {r, omega{{nfact}}, eval = TRUE, echo = FALSE}
+omegas{{nfact}} <- omega(ddNum{{nfact}},
+                         nfactors = {{nfact}},
+                         fm = "pa",
+##                       poly = TRUE,
+                         rotate = "oblimin")
+
+
+
+save(omegas{{nfact}}, file = paste0("data/omegas", {{nfact}}, ".Rda"))
+
+```
+
+The overall alpha for all items is 
+`r omegas{{nfact}}$alpha`.  
+
+The overall omega for all items is
+`r omegas{{nfact}}$omega.tot`.  
+
+Hierarchical omega is
+`r omegas{{nfact}}$omega_h`.
+
+``` {r, alphaOmegaTab{{nfact}}, eval = TRUE, echo = FALSE}
+relTab <- omegas{{nfact}}$omega.group
+
+#### Still need to calculate factor scores for Cronbach's alpha
+
+
+```
+
+
+
