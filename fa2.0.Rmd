@@ -16,9 +16,9 @@ Josseet al (2010)
 ``` {r, impute{{nfact}}, results="asis", echo=FALSE}
 
 imputationResults{{nfact}} <- imputeMCA(ddOrd{{nfact}})
-imputedFactors{{nfact}} <- imputationResults{{nfact}}$completeObs
-save(imputedFactors{{nfact}}, file=paste0("data/imputedFactors", {{nfact}}, ".Rda"))
-imputedChar{{nfact}} <- lapply(imputedFactors{{nfact}}, as.character)
+postImputedFactors{{nfact}} <- imputationResults{{nfact}}$completeObs
+save(postImputedFactors{{nfact}}, file=paste0("data/imputedFactors", {{nfact}}, ".Rda"))
+imputedChar{{nfact}} <- lapply(postImputedFactors{{nfact}}, as.character)
 imputedNumeric{{nfact}} <- lapply(imputedChar{{nfact}}, as.numeric)
 
 imputedNumericDF{{nfact}} <- data.frame(imputedNumeric{{nfact}})
@@ -35,11 +35,11 @@ This function tests whether a correlation matrix is significantly different from
 ``` {r, preBartlett{{nfact}}, results="asis", echo=FALSE}
 ### calculate polychoric correlation
 
-preImputedCor{{nfact}} <- lavaan::lavCor(ddOrd{{nfact}},
-                                ordered = names(ddOrd{{nfact}}),
-                                missing = "pairwise",
-                                cor.smooth = TRUE)
-write.csv(round(preImputedCor{{nfact}}, 3), file=paste0("data/polychoricCorrelations", {{nfact}}, ".csv"), quote=FALSE, row.names=FALSE)
+preImputedCor{{nfact}} <- polychoric(ddNum{{nfact}},
+                                     smooth = TRUE,
+                                     correct = 0.01)
+preImputedCor{{nfact}} <- round(preImputedCor{{nfact}}$rho, 3)
+write.csv(preImputedCor{{nfact}}, file=paste0("data/polychoricCorrelations", {{nfact}}, ".csv"), quote=FALSE, row.names=FALSE)
 
 preBartlett{{nfact}} <- cortest.bartlett(preImputedCor{{nfact}},
                                          n = nrow(ddOrd{{nfact}}))
@@ -81,10 +81,12 @@ KMOoutput{{nfact}}$KMO
 ``` {r, post-imputationCorrelationMatrix{{nfact}}, results="asis", echo=FALSE}
 ### generate polyserial correlation matrix
 ### set cor.smooth to TRUE to avoid having not positive definite matrix
-postImputedCor{{nfact}} <- lavCor(imputedNumericDF{{nfact}},
-                        ordered = names(imputedNumericDF{{nfact}}),
-                                 cor.smooth=TRUE)
-write.csv(round(data.frame(postImputedCor{{nfact}}), 3), file="data/postImputedCor{{nfact}}.csv")
+postImputedCor{{nfact}} <- polychoric(imputedNumericDF{{nfact}},
+                                       smooth=TRUE,
+                                       correct = 0.01)
+postImputedCor{{nfact}} <- round(postImputedCor{{nfact}}$rho, 3)
+
+write.csv(postImputedCor{{nfact}}, file="data/postImputedCor{{nfact}}.csv")
 
 ```
 
@@ -179,11 +181,13 @@ Settings Used:
 
 
 ``` {r, parallelFactorestimation{{nfact}}, results=FALSE, echo=FALSE} 
-parallelOutput{{nfact}} <- fa.parallel(postImputedCor{{nfact}},
+parallelOutput{{nfact}} <- fa.parallel(imputedNumericDF{{nfact}},
                               n.obs = nrow(imputedNumericDF{{nfact}}),
                                 fa = "fa",
                                 fm = "pa",
-                              n.iter = 100)
+                              n.iter = 100,
+### argument not allowed                              smooth = TRUE)
+                              correct = 0.01)
  
 
 ```
@@ -195,16 +199,17 @@ The suggested number of factors is `r parallelOutput{{nfact}}$nfact`.
 MAP is recommended as a way to find the number of factors when the items are ordinal. The lowest value indicates the best number of factors.  
 
 ``` {r, MAP{{nfact}}, results="asis", echo=FALSE}
-mapFactors{{nfact}} <- vss(postImputedCor{{nfact}}, 
+mapFactors{{nfact}} <- vss(postImputedCor{{nfact}},
+                           n.obs = nrow(ddNum{{nfact}}),
                   n = 18,
                   rotate = "oblimin",
                   fm="pa",
-                  n.obs = nrow(ddItems),
                   smooth = TRUE,
                   plot = FALSE,
 				  cor = "poly",
-                  maxit = 10000)
- 
+                  maxit = 10000,
+                  correct = 0.01)
+ ### tried correction values pf 0.01. 0.05, 0.1, 0.15, 0.25, 0.3  because of error about c(x, y)
 
 mapTab{{nfact}} <- data.frame(seq(1:length(mapFactors{{nfact}}$map)),
                               mapFactors{{nfact}}$map)
@@ -221,13 +226,14 @@ kable_styling(mapTabK{{nfact}}, full_width = FALSE)
 
 ``` {r, modelFit{{nfact}}, eval=TRUE, echo=FALSE}
 
-fanal{{nfact}} <- fa(postImputedCor{{nfact}},
+fanal{{nfact}} <- fa(imputedNumericDF{{nfact}},
       nfactors = {{nfact}},
-      n.obs = nrow(ddOrd{{nfact}}),
       rotate = "oblimin",
       fm = "pa",
       smooth = TRUE,
-      cor = "poly")
+      cor = "poly",
+      correct = 0.01,
+      max.iter = 10000)
 
 save(fanal{{nfact}}, file = paste0("data/fanal2.", {{nfact}}, ".Rda"))
 
@@ -303,35 +309,8 @@ kable_styling(largestLoadings, full_width = FALSE)
 ```
 ### {{nfact}} Model Reliability Measures
 
-``` {r, omega{{nfact}}, eval = TRUE, echo = FALSE}
-omegas{{nfact}} <- omega(ddNum{{nfact}},
-                         nfactors = {{nfact}},
-                         fm = "pa",
-##                       poly = TRUE,
-                         rotate = "oblimin")
 
-
-
-save(omegas{{nfact}}, file = paste0("data/omegas", {{nfact}}, ".Rda"))
-
-```
-
-The overall alpha for all items is 
-`r omegas{{nfact}}$alpha`.  
-
-The overall omega for all items is
-`r omegas{{nfact}}$omega.tot`.  
-
-Hierarchical omega is
-`r omegas{{nfact}}$omega_h`.
-
-``` {r, alphaOmegaTab{{nfact}}, eval = TRUE, echo = FALSE}
-relTab <- omegas{{nfact}}$omega.group
-
-#### Still need to calculate factor scores for Cronbach's alpha
-
-
-```
-
-
-
+``` {r, reliability{{nfact}}, eval = TURE, echo = FALSE}
+### get item response theory parameters so you can get reliability
+fairt{{nfact}} <- fa2irt(f = fanal{{nfact}}, rho = imputedResults{{nfact}})
+score{{nfact}} <- scoresIrt(fanal{{nfact}}, imputedNumericDF{{nfact}}, plot = FALSExsxsxs)

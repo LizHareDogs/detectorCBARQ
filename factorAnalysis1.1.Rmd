@@ -1,6 +1,6 @@
 ---
 title: "Factor Analysis for Detector Dog C-BARQ for Combined Phase 1 and Phase 2 Data"
-subtitle: "Version 1.1 of Combined Factor Analysis (No Chasing Data), duplicated orecords removed"
+subtitle: "Version 1.1 of Combined Factor Analysis (No Chasing Data), duplicated records removed"
 author:
     name: Liz Hare, PhD
     email: lizhare@gmail.co 
@@ -204,6 +204,7 @@ The maximum correlation was `r max(lowerTriangle(postImputedCor))`.
 ``` {r, postImputedCorrelation, results="asis", echo=FALSE}
 cor.plot(postImputedCor)
 ```
+
 # Estimating Number of Factors
 
 ## Parallel method
@@ -227,7 +228,8 @@ parallelOutput <- fa.parallel(postImputedCor,
                               n.obs = nrow(imputedNumericDF),
                                 fa = "fa",
                                 fm = "pa",
-                              n.iter = 100)
+                              n.iter = 100,
+                              correct = 0.01)
  
 
 ```

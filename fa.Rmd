@@ -4,13 +4,14 @@
 
 ``` {r, modelFit{{nfact}}, eval=TRUE, echo=FALSE}
 
-fanal{{nfact}} <- fa(postImputedCor,
+fanal{{nfact}} <- fa(imputedNumeric,
       nfactors = {{nfact}},
       n.obs = nrow(ddItems),
       rotate = "oblimin",
       fm = "pa",
       smooth = TRUE,
-      cor = "poly")
+      cor = "poly",
+      correct = 0.01)
 
 save(fanal{{nfact}}, file = paste0("data/fanal", {{nfact}}, ".Rda"))
 
