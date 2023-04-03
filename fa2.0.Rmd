@@ -182,7 +182,6 @@ Settings Used:
 
 ``` {r, parallelFactorestimation{{nfact}}, results=FALSE, echo=FALSE} 
 parallelOutput{{nfact}} <- fa.parallel(imputedNumericDF{{nfact}},
-                              n.obs = nrow(imputedNumericDF{{nfact}}),
                                 fa = "fa",
                                 fm = "pa",
                               n.iter = 100,
@@ -310,7 +309,20 @@ kable_styling(largestLoadings, full_width = FALSE)
 ### {{nfact}} Model Reliability Measures
 
 
-``` {r, reliability{{nfact}}, eval = TURE, echo = FALSE}
-### get item response theory parameters so you can get reliability
-fairt{{nfact}} <- fa2irt(f = fanal{{nfact}}, rho = imputedResults{{nfact}})
-score{{nfact}} <- scoresIrt(fanal{{nfact}}, imputedNumericDF{{nfact}}, plot = FALSExsxsxs)
+``` {r, reliability{{nfact}}}
+keys{{nfact}} <- factor2cluster(fanal{{nfact}})
+keysList{{nfact}} <- keys2list(keys{{nfact}})
+
+scores{{nfact}} <- scoreItems(keysList{{nfact}},
+                              imputedNumericDF{{nfact}},
+                              delete = TRUE) ## avoid error about zero or NA entries for cov2cor
+scores{{nfact}}$alpha
+
+
+rel{{nfact}} <- reliability(keysList{{nfact}},
+                            postImputedCor{{nfact}})
+
+rel{{nfact}}
+
+
+```
