@@ -309,18 +309,19 @@ kable_styling(largestLoadings, full_width = FALSE)
 ### {{nfact}} Model Reliability Measures
 
 
-``` {r, reliability{{nfact}}}
+``` {r, reliability{{nfact}}, errors = FALSE}
 keys{{nfact}} <- factor2cluster(fanal{{nfact}})
 keysList{{nfact}} <- keys2list(keys{{nfact}})
 
 scores{{nfact}} <- scoreItems(keysList{{nfact}},
-                              imputedNumericDF{{nfact}},
-                              delete = TRUE) ## avoid error about zero or NA entries for cov2cor
+                              imputedNumericDF{{nfact}})
+
 scores{{nfact}}$alpha
 
 
 rel{{nfact}} <- reliability(keysList{{nfact}},
-                            postImputedCor{{nfact}})
+                            imputedNumericDF{{nfact}})
+
 
 rel{{nfact}}
 
