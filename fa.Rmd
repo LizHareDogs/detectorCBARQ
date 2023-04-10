@@ -4,9 +4,9 @@
 
 ``` {r, modelFit{{nfact}}, eval=TRUE, echo=FALSE}
 
-fanal{{nfact}} <- fa(imputedNumeric,
+fanal{{nfact}} <- fa(imputedNumericDF,
       nfactors = {{nfact}},
-      n.obs = nrow(ddItems),
+      n.obs = nrow(imputedNumericDF),
       rotate = "oblimin",
       fm = "pa",
       smooth = TRUE,
@@ -53,6 +53,26 @@ datapath <- "data/"
 save(lc{{nfact}}, file=paste0(datapath, "lc", {{nfact}}, ".Rda"))
 
 ```
+
+#### How many communalities < 0.50?
+
+There are `r length(fanal{{nfact}}[fanal{{nfact}}$communality < 0.50])` 
+items with communality < 0.50.
+
+
+``` {r, lowCommTabF{{nfact}}, eval=TRUE, echo=FALSE}
+lcf{{nfact}} <- data.frame(fanal{{nfact}}$communality)
+lcf{{nfact}}$item <- colnames(ddItems)
+lcf{{nfact}} <- lcf{{nfact}}[lcf{{nfact}}[1] < 0.50, ]
+lcfTab{{nfact}} <- kable(lcf{{nfact}}, digits = 2)
+kable_styling(lcfTab{{nfact}})
+datapath <- "data/"
+save(lcf{{nfact}}, file=paste0(datapath, "lc", {{nfact}}, ".Rda"))
+
+```
+
+
+
 
 ### {{nfact}} Factor Model Loadings
 
