@@ -48,7 +48,7 @@ lc{{nfact}} <- data.frame(fanal{{nfact}}$communality)
 lc{{nfact}}$item <- colnames(ddItems)
 lc{{nfact}} <- lc{{nfact}}[lc{{nfact}}[1] < 0.40, ]
 lcTab{{nfact}} <- kable(lc{{nfact}}, digits = 2)
-kable_styling(lcTab{{nfact}})
+kable_styling(lcTab{{nfact}}, full_width = FALSE)
 datapath <- "data/"
 save(lc{{nfact}}, file=paste0(datapath, "lc", {{nfact}}, ".Rda"))
 
@@ -61,13 +61,11 @@ items with communality < 0.50.
 
 
 ``` {r, lowCommTabF{{nfact}}, eval=TRUE, echo=FALSE}
-lcf{{nfact}} <- data.frame(fanal{{nfact}}$communality)
-lcf{{nfact}}$item <- colnames(ddItems)
-lcf{{nfact}} <- lcf{{nfact}}[lcf{{nfact}}[1] < 0.50, ]
-lcfTab{{nfact}} <- kable(lcf{{nfact}}, digits = 2)
-kable_styling(lcfTab{{nfact}})
-datapath <- "data/"
+lcf{{nfact}} <- lc{{nfact}}[lc{{nfact}}[1] < 0.50,]
 save(lcf{{nfact}}, file=paste0(datapath, "lc", {{nfact}}, ".Rda"))
+
+lcfTab{{nfact}} <- kable(lcf{{nfact}}, digits = 2)
+kable_styling(lcfTab{{nfact}}, full_width = FALSE)
 
 ```
 
