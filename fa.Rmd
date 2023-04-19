@@ -75,7 +75,7 @@ kable_styling(lcfTab{{nfact}}, full_width = FALSE)
 ### {{nfact}} Factor Model Loadings
 
 
-### {{nfact}} Factor Model Loadings
+### All loadings
 
 ``` {r, finalLoadings{{nfact}}, eval=TRUE, echo=FALSE}
 loadMat <- matrix(fanal{{nfact}}$loadings, nrow = ncol(ddItems))
@@ -102,7 +102,50 @@ m1 <- merge(loadDF, descItems, by="itemNames", all.x=TRUE, all.y=FALSE)
 m1 <- m1[order(m1$largest), ]
 largestLoadings <- kable(m1[ ,c("largest", "maximum", "itemNames", "itemDescriptions")],
                          digits = 2,
-      caption = "Largest Loading Per Item and Associated Factors, Sorted by Factor")
+                         caption = "Largest Loading Per Item and Associated Factors, Sorted by Factor")
+
 kable_styling(largestLoadings, full_width = FALSE)
+
+```
+
+#### Items with Loadings < 0.32
+
+These are probably too low to include
+
+``` {r, low{{nfact}}, eval=TRUE, echo=FALSE}
+m1small{{nfact}} <- m1[m1$maximum < 0.32, ]
+m1small{{nfact}}$fnum <- str_extract(m1small{{nfact}}$itemNames, "\\d\\d")
+m1small{{nfact}} <- m1small{{nfact}}[order(m1small{{nfact}}$fnum), c("fnum", "itemNames", "largest", "itemDescriptions")]
+m1small{{nfact}}K <- kable(m1small{{nfact}}, digits = 2)
+kable_styling(m1small{{nfact}}K, full_width=FALSE)
+
+
+```
+
+### {{nfact}} Model Reliability
+
+``` {r, reliability{{nfact}}, eval = TRUE, echo=FALSE}
+keys{{nfact}} <- factor2cluster(fanal{{nfact}})
+keysList{{nfact}} <- keys2list(keys{{nfact}})
+
+scores{{nfact}} <- scoreItems(keysList{{nfact}},
+                              imputedNumericDF)
+
+alpha{{nfact}}Tab <- data.frame(t(scores{{nfact}}$alpha))
+alpha{{nfact}}Tab$fnum <- str_extract(rownames(alpha{{nfact}}Tab),
+                                   "\\-*\\d+\\.*\\d*")
+alpha{{nfact}}Tab$fnum <- str_pad(alpha{{nfact}}Tab$fnum, width = 2, side = "left", pad = "0")
+alpha{{nfact}}Tab$factor <- paste0("F", alpha{{nfact}}Tab$fnum)
+alpha{{nfact}}Tab  <- alpha{{nfact}}Tab[order(alpha{{nfact}}Tab$fnum), ]
+
+alpha{{nfact}}TabK <- kable(alpha{{nfact}}Tab, digits = 2)
+kable_styling(alpha{{nfact}}TabK, full_width = FALSE)
+
+rel{{nfact}} <- reliability(keysList{{nfact}},
+                            imputedNumericDF)
+
+
+
+rel{{nfact}}
 
 ```
