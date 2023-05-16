@@ -1,0 +1,327 @@
+---
+title: "Factor Analysis for Detector Dog C-BARQ for Combined Phase 1 and Phase 2 Data"
+subtitle: "Version 3.0 with 15 factors"
+author:
+    name: Liz Hare, PhD
+    email: lizhare@gmail.com 
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        toc: true
+        number_sections: true
+---
+
+``` {r, setup, echo=FALSE}
+library(knitr)
+library(kableExtra)
+library(gtsummary)
+library(psych)
+library(lavaan)
+library(EFAtools)
+library(missMDA)
+library(gdata)
+
+load("data/ddCBARQnumeric.Rda")
+load("data/ddCBARQordered.Rda")
+descItems <- read.csv("data/cbarqItemDescriptions.csv")
+
+
+```
+
+
+``` {r, removeItems, include=FALSE}
+drop15 <- c("TRAIN05", "TRAIN06", "TRAIN08",
+                        "AGG11", "AGG12", "AGG13", "AGG17",
+                        "FEAR22", "FEAR25",
+                        "ATT40", "ATT42",
+                        "IMP49", "MISC50", "MISC51", "MISC57", "MISC58",
+                        "MISC63", "MISC68", "MISC69", "MISC70", "MISC71")
+ddNum15 <- ddItems[ , -which(names(ddItems) %in% drop15)]
+ddOrd15 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop15)]
+
+```
+
+	  
+# 15-Factor Model with Item MISC69 removed
+
+Item MISC69 is "Chases/follows shadows, light spots, etc."  We decided to remove it because it sorted with fear of underfootings
+
+
+## Imputation
+
+Categorical missing values using multiple Correspondence Analysis (also called Missing Fuzzy Average method)
+Josseet al (201
+0)
+
+
+``` {r, imputation,  results="asis", echo=FALSE}
+imputationResults15 <- imputeMCA(ddOrd15)
+postImputedFactors15 <- imputationResults15$completeObs
+imputedChar15 <- lapply(postImputedFactors15, as.character)
+imputedNumeric15 <- lapply(imputedChar15, as.numeric)
+imputedNumericDF15 <- data.frame(imputedNumeric15)
+save(imputedNumericDF15, file="data/3.0/imputedNumericDF3.0")
+write.csv(imputedNumericDF15, file="data/3.0/imputedNumeric15.csv", quote = FALSE, row.names=FALSE)
+
+```
+
+``` {r, cors, results="asis", echo=FALSE}
+### calculate polychoric correlation
+preImputedCor15 <-polychoric(ddNum15,
+                             smooth = TRUE,
+                             correct = 0.01)
+preImputedCor15 <- round(preImputedCor15$rho, 3)
+write.csv(preImputedCor15, file = "data/3.0/preImputedCor15.csv",
+          quote=FALSE, row.names=FALSE)
+
+
+### preImputation Bartlett
+preBartlett15 <- cortest.bartlett(preImputedCor15,
+                                  n = nrow(ddOrd15))
+
+```
+
+## Tests of Suitability for Factor Analysis
+
+### Pre-imputation
+
+#### Bartlett's Test
+
+This is a test that the matrix is an identity matrix. This would mean
+that the correlations were not significantly different from 0.
+If it's not significant, the matrix is not suitable because 
+the variables show too little covariance.  
+
+The chi-squared for the Bartlett test is 
+`r preBartlett15$chisq` with
+`r preBartlett15$df` DF, p = 
+`r format(preBartlett15$p.value, scientific=TRUE)`.
+
+#### Kaiser-Meyer-Olkin Criterion (KMO)
+
+From EFAtools::KMO documentation:
+
+> The KMO represents the degree to which each observed variable is predicted by the other variables in the dataset and with this indicates the suitability for factor analysis  
+
+The numeric version of the dataset is used because stats::cor is used to find
+the correlation and it requires numeric input. Used option for 
+Spearman correlation because of ordered variables.  
+
+
+``` {r, preImpKMO, results="asis", echo=FALSE}
+KMOoutput15 <- KMO(ddNum15, cor_method = "spearman")
+KMOoutput15$KMO
+```
+
+### Post-imputation
+
+#### Bartlett's Test
+
+``` {r, postImputationCorr, results="asis", echo=FALSE}
+### generate polychoric correlation matrix
+postImputedCor15 <- polychoric(imputedNumericDF15,
+                               smooth = TRUE,
+                               correct = 0.01)
+postImputedCor15 <- round(postImputedCor15$rho, 3)
+write.csv(postImputedCor15,
+          file="data/3.0/postImputedCor15.csv",
+          quote = FALSE,
+          row.names=FALSE)
+
+### Bartlett Test
+postBartlett15 <- cortest.bartlett(postImputedCor15,
+                                   n = nrow(ddOrd15))
+
+```
+
+This is a test that the matrix is an identity matrix. This would mean
+that the correlations were not significantly different from 0.
+If it's not significant, the matrix is not suitable because 
+the variables show too little covariance.  
+  
+
+
+The chi-squared for the Bartlett test is 
+`r postBartlett15$chisq` with
+`r postBartlett15$df` DF, p = 
+`r format(postBartlett15$p.value, scientific = TRUE)`.
+
+
+
+#### Kaiser-Meyer-Olkin Criterion (KMO)
+
+From EFAtools::KMO documentation:
+
+> The KMO represents the degree to which each observed variable is predicted by the other variables in the dataset and with this indicates the suitability for factor analysis  
+
+The numeric version of the dataset is used because stats::cor is used to find
+the correlation and it requires numeric input. Used option for 
+Spearman correlation because of ordered variables.  
+
+
+``` {r, KMOpostImputed, results="asis", echo=FALSE}
+KMOutput15 <- KMO(ddNum15, cor_method = "spearman")
+KMOoutput15$KMO
+
+```
+
+
+## Between-Item Correlations
+
+### Pre-imputation  
+
+For factor analysis, it is recommended that some of the item correlationsshould be 
+between 0.3 and 0.9.
+Polychoric correlations were computed using the `polychoric` function in the `psych` package in R 
+with options `smooth = TRUE` to adjust for non-positive-definite matrices 
+and `correct = 0.01` to avoid computation problems with covariance of zero.
+
+
+The minimum correlation in this data set is 
+`r min(lowerTriangle(preImputedCor15))`.
+The maximum correlation in this data set is 
+`r max(lowerTriangle(preImputedCor15))`.
+
+``` {r, preImputedCorPlot, results="asis", echo=FALSE}
+cor.plot(preImputedCor15)
+```
+
+### Post-imputation
+
+The post imputation polyserial correlation was also computed using the `polychoric`
+function, with no setting `smooth = TRUE` and `correct = 0.01.`  
+
+The minimum correlation was 
+`r min(lowerTriangle(postImputedCor15))`.
+The maximum correlation was 
+`r max(lowerTriangle(postImputedCor15))`.
+
+``` {r, postImputedCorrelation, results="asis", echo=FALSE}
+cor.plot(postImputedCor15)
+```
+
+## Factor Analysis for 15 Factor Model
+
+``` {r, modelFit15, results="asis", echo=FALSE}
+
+fanal15 <- fa(imputedNumericDF15,
+      nfactors = 15,
+      rotate = "oblimin",
+      fm = "pa",
+      smooth = TRUE,
+      cor = "poly",
+      correct = 0.01,
+      max.iter = 100000)
+
+save(fanal15, file = "data/3.0/fanal15.Rda")
+
+```
+
+Although the chi-square test of goodness of fit is sensitive to departures from normality like
+the C-BARQ items, Hopper et al (2008) recommend always reporting it.  
+
+- chi-square: `r fanal15$STATISTIC`  
+- degrees of freedom: `r fanal15$dof`  
+- P-value for chi-square = `r format(fanal15$PVAL, scientific = TRUE)`  
+
+Tucker-Lewis Index of Factoring Reliability/Non-Norm Fit Index:
+`r fanal15$TLI`.
+Should be > 0.9; need reference)
+
+## Communalities
+
+``` {r, communalities, results="asis", echo=FALSE}
+commTab <- kable(data.frame(fanal15$communality), digits = 2)
+kable_styling(commTab, full_width = FALSE)
+```
+
+### How many communalities < 0.40?
+
+THere are `r length(fanal15[fanal15$communality < 0.40])`
+items with communality < 0.40.
+
+``` {r, lowCommTab15, results = "asis", echo = FALSE}
+lc15 <- data.frame(fanal15$communality )
+lc15$item <- colnames(ddOrd15)
+lc15 <- lc15[lc15[1] < 0.40, ]
+lcTab15 <- kable(lc15, digits = 2)
+kable_styling(lcTab15, full_width = FALSE)
+
+
+```
+
+## Loadings
+
+# Model Summary
+
+``` {r, modelFitCompare, eval=TRUE, echo=FALSE}
+
+## getFits <- function(x) {
+##     y <- c(x$factors, x$TLI, x$STATISTIC, x$dof, x$PVAL)
+##     return(y)
+## }
+
+## fits12 <- getFits(fanal12)
+## fits13 <- getFits(fanal13)
+## fits14 <- getFits(fanal14)
+## fits15 <- getFits(fanal15)
+## fits16 <- getFits(fanal16)
+## fits17 <- getFits(fanal17)
+## fits18 <- getFits(fanal18)
+
+## fitTab <- data.frame(fits12, fits13, fits14, fits15, fits16, fits17, fits18)
+
+
+
+## KMOS <- c(KMOoutput12$KMO,
+##                    KMOoutput13$KMO,
+##                    KMOoutput14$KMO,
+##                    KMOoutput15$KMO,
+##                    KMOoutput16$KMO,
+##                    KMOoutput17$KMO,
+##                    KMOoutput18$KMO)
+
+##          bartlettChi <- c(postBartlett12$chisq,
+##                           postBartlett13$chisq,
+##                           postBartlett14$chisq,
+##                           postBartlett15$chisq,
+##                           postBartlett16$chisq,
+##                           postBartlett17$chisq,
+##                           postBartlett18$chisq)
+
+## bartlettDF <- c(postBartlett12$df,
+##                          postBartlett13$df,
+##                          postBartlett14$df,
+##                          postBartlett15$df,
+##                          postBartlett16$df,
+##                          postBartlett17$df,
+##                          postBartlett18$df)
+
+## bartlettP <- c(postBartlett12$p.value,
+##                         postBartlett13$p.value,
+##                         postBartlett14$p.value,
+##                         postBartlett15$p.value,
+##                         postBartlett16$p.value,
+##                         postBartlett17$p.value,
+##                         postBartlett18$p.value)
+
+## fitTab2 <- rbind(bartlettChi, bartlettDF, bartlettP, KMOS, fitTab)
+
+## rownames(fitTab2) <- c("Bartlett test chi-square",
+##                       "Bartlett test degrees of freedom",
+##                       "Bartlett test p-value",
+##                       "KMO",
+##                       "factors",
+##                       "Tucker-Lewis Index",
+##                       "Chi-square",
+##                       "Degrees of freedom for chi-square",
+##                       "P-value for chi-square")
+
+## fitTab2 <- fitTab2[c(1:4, 6:9),]
+         
+## fitTab2K <- kable(fitTab2, digits = c(2, 0, 3, 2, 2, 2, 0, 3), row.names = TRUE,
+##                  caption = "Model fit statistics for each number of factors. TLI = Tucker-Lewis index of factoring reliability")
+## kable_styling(fitTab2K)
+
+    
+```
