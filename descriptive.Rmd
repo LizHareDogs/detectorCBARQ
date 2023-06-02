@@ -81,8 +81,8 @@ d1 <- d1[!d1$Dog.ID %in% delRecs, ]
 
 The data analyzed here include
 `r nrow(d1)` dogs with dogs collected in Phase 1
-(`r nrow(rawPhase1)` dogs) and Phase 2 
-(`r nrow(rawPhase2)` dogs). In phase 1, there was a problem collecting 
+(`r nrow(d1[d1$phase == 1,])` dogs) and Phase 2 
+(`r nrow(d1[d1$phase == 2, ])` dogs). In phase 1, there was a problem collecting 
 data about whether dogs were neutered. Also in phase 1,
 three questions about chasing were excluded. Because they are 
 missing fro most dogs in this data set, they are excluded from the 
@@ -103,7 +103,8 @@ sexNeuteredTab <- tbl_summary(d1, by = neuteredF,
                              include = sexF,
                              type = everything() ~ "categorical",
                              statistic = everything() ~ "{n} ({p}%)",
-                             missing = "ifany")
+                             missing = "ifany") %>%
+add_overall()
 
 modify_caption(sexNeuteredTab, "Overall Sex and Neuter Status (Caution: lots of missing neuter status data)")
 
