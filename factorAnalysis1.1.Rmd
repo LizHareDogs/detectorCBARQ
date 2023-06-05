@@ -21,6 +21,7 @@ library(EFAtools)
 library(missMDA)
 library(gdata)
 library(corpcor)
+library(stringr)
 
 load("data/ddCBARQnumeric.Rda")
 load("data/ddCBARQordered.Rda")
@@ -166,7 +167,7 @@ Spearman correlation because of ordered variables.
 
 
 ``` {r, KMOpostImputed, results="asis", echo=FALSE}
-KMOoutput <- KMO(ddItems, cor_method = "spearman")
+KMOoutput <- KMO(imputedNumericDF, cor_method = "spearman")
 KMOoutput$KMO
 
 ```
