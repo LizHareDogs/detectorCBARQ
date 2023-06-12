@@ -16,13 +16,16 @@ output:
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(stringr)
 library(knitr)
 library(kableExtra)
 library(gtsummary)
-library(openxlsx)
+library(writexl)
 library(psych)
 library(correlation)
 library(gluedown) ## inline print lists from R
+library(openxlsx)
+library(writexl)
 
 
 ### get files
@@ -157,8 +160,17 @@ breedTab
 ``` {r, breedGroup, results="asis", echo=FALSE}
 breedGroupTab <- tbl_summary(d1,
                              include = breedGroup,
-                             statistic = all_categorical() ~ "{n} ({p}%)")
+                             statistic = all_categorical() ~ "{n} ({p}%)",
+                             digits = list(all_categorical() ~ c(0,1))) %>%
+modify_header(
+    label = "Breed Group",
+    stat_0 = "N (Percent)")
+
 breedGroupTab
+
+breedGroupTib <- gtsummary::as_tibble(breedGroupTab)
+breedGroupTib <- breedGroupTib[2:nrow(breedGroupTib), ]
+write_xlsx(breedGroupTib, "Table1.xlsx")
 
 
 ```
@@ -214,12 +226,36 @@ breedDualTab
 ## Odors Detected
 
 ``` {r, odorVars, results="asis", echo=FALSE}
+
+
 odorTab <- tbl_summary(d1, 
                        include=odoraccelerant:odorother,
                        type=everything() ~ "dichotomous",
-                       statistic = all_categorical() ~ "{n}, {p}%",
-                       digits = list(all_categorical() ~ c(0, 1)))
+                       statistic = all_categorical() ~ "{n} ({p}%)",
+                       digits = list(all_categorical() ~ c(0, 1)),
+                       label = list(odoraccelerant = "Accelerant",
+                                    odorcontraband = "Contraband",
+                                    odorendangeredspecies = "Endangered Species",
+                                    odorexplosives = "Explosives",
+                                    odorhumanremains = "Human Remains",
+                                    odorinvasivespecies = "Invasive Species",
+                                    odorlivehumanairscent = "Live Human Air Scent",
+                                    odorlivehumantracking = "Live Human Tracking",
+                                    odormedicaldetection = "Medical Detection",
+                                    odornarcotics = "Narcotics",
+                                    odorpests = "Pests",
+                                    odorother = "Other")) %>%
+    modify_header(
+        label = "Type of Trained Odor",
+        stat_0 = "N (Percent)")       
 odorTab
+
+odorTib <- gtsummary::as_tibble(odorTab)
+write_xlsx(odorTib, "Table2.xlsx")
+
+
+
+
 ```
 
 ### Odors entered under "Other"
@@ -234,9 +270,28 @@ Lots of them are nosework-related. Let me know if you want the list.
 certTab <- tbl_summary(d1,
                        include=certificatearda:certificateuspda,
                        type=everything() ~ "dichotomous",
-                       statistic = all_categorical() ~ "{n}, {p}%",
-                       digits = list(everything() ~ c(0, 1)))
-certTab
+                       statistic = all_categorical() ~ "{n} ({p}%)",
+                       digits = list(everything() ~ c(0, 1)),
+                       label = list(certificatearda = "American Rescue Dog Association",
+                                     certificatefema = "Federal Emergency Management Agency",
+                                     certificatenasr = "National Association for Search and Rescue",
+                                     certificatenesdca = "National Entomology Scent Detection Canine Association",
+                                     certificatenndda = "National Narcotic Detector Dog Association",
+                                     certificatentpda = "National Tactical Police Dog Association",
+                                     certificatenapda = "North American Police Dog Association",
+                                     certificatesrdus = "Search and Rescue Dogs of the United States",
+                                     certificateuspda = "United States Police Dog Association",
+                                     certificateother = "Other")) %>%
+                           modify_header(
+                               label = "Certifying Organization",
+                               stat_0 = "N (Percent)")
+
+
+                       certTab
+
+                       certTib <- gtsummary::as_tibble(certTab)
+                       write_xlsx(certTib, "Table3.xlsx")
+
 ```
 
 ### Other Certifying organizations
@@ -247,11 +302,21 @@ There are too many answers to print here
 ## Alert Type
 
 ``` {r, alertTab, results="asis", echo=FALSE}
+d1$alerttypeF <- str_to_title(d1$alerttypeF)
 alertTab <- tbl_summary(d1, include=alerttypeF,
                         type = everything() ~ "categorical",
                         statistic = all_categorical() ~ "{n}, ({p}%)",
-                        digits = list(all_categorical() ~ c(0,1)))
+                        digits = list(all_categorical() ~ c(0,1))) %>%
+    modify_header(
+        label = "Alert Type",
+        stat_0 = "N (Percent)")
+
 alertTab
+
+alertTib <- gtsummary::as_tibble(alertTab)
+alertTib <- alertTib[2:nrow(alertTib),]
+write_xlsx(alertTib, "Table4.xlsx")
+
 ```
 
 ## Reward System
