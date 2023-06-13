@@ -13,13 +13,16 @@ output:
 
 ``` {r, setup, echo=FALSE}
 library(knitr)
+library(tidyr)
+library(dplyr)
 library(kableExtra)
 library(gtsummary)
 library(psych)
-library(lavaan)
 library(EFAtools)
 library(missMDA)
+library(readr)
 library(gdata)
+library(writexl)
 
 load("data/ddCBARQnumeric.Rda")
 load("data/ddCBARQordered.Rda")
@@ -331,6 +334,67 @@ om15
 
 ```
 
+``` {r, ManuscriptReliabilityTab, results="asis", echo=FALSE}
+### separate factor number from alphas table, factor var
+alphas$fnum <- parse_number(alphas$factor)
+alphas <- alphas[order(alphas$fnum), ]
+### add top blank row because omega has the g row
+
+
+### get omega table
+omTemp <- matrix(om15, ncol = 6)
+omTemp <- round(omTemp, 2)
+omTemp <- data.frame(omTemp)
+colnames(omTemp) <- c("TotalOmega", "HierarchicalOmega", "SubscleOmega", "H", "ECV", "PUC")
+k <- dimnames(om15)[1]
+k <- unlist(k)
+rownames(omTemp) <- k
+omTemp$factor <- rownames(omTemp)
+omTemp$fnum <- c(NA, seq(1:15))
+
+### merge alpha and omega
+rel <- merge(alphas, omTemp, by="fnum", all=TRUE)
+
+### sort numaric
+rel <- rel[order(rel$fnum), ]
+
+### bring bottom for the g factor to the top
+rel <- rel[c(16, 1:15), ] 
+
+### round(alpha)
+rel$alpha <- round(rel$alpha, 2)
+
+### keep only needed vars
+rel <- rel[ ,c("factor.y", "alpha", "TotalOmega", "HierarchicalOmega", "SubscleOmega")]
+
+### neaten colnames (put in spaces and remove .y) for output table
+colnames(rel) <- c("Factor", "alpha", "Total Omega", "Hierarchical Omega", "Subscale Omega")
+rel$Factor <- parse_number(rel$Factor)
+
+write_xlsx(rel, "Table5.xlsx")
+
 ```
 
+## Scores
 
+``` {r, scoreTable, results="asis", echo=FALSE}
+st <- scores15$scores
+st <- data.frame(st)
+longScores <- pivot_longer(st, everything(), names_to = "Factor", values_to = "Score")
+scoreTab <- longScores %>%
+    group_by(Factor) %>%
+    dplyr::summarize(Mean = mean(Score),
+                     SD = sd(Score)) %>%
+mutate(across(where(is.numeric), round, 2))
+
+scoreTab$Factor <- parse_number(scoreTab$Factor)
+scoreTab <- scoreTab[order(scoreTab$Factor), ]
+
+scoreTabK <- kable(scoreTab, digits=2,
+                   caption = "Mean, Standard Deviation, and Median for Each of 15 Factors")
+kable_styling(scoreTabK, full_width = FALSE)
+
+write_xlsx(scoreTab, "Table6.xlsx")
+
+
+```
