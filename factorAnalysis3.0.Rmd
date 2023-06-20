@@ -280,13 +280,48 @@ m1 <- merge(loadDF, descItems,
             by="itemNames",
             all.x = TRUE,
             all.y = FALSE)
+
 ### sort by factor
-m1 <- m1[order(m1$largest), ]
-largestLoadings <- kable(m1[ ,c("largest", "maximum", "itemNames", "itemDescriptions")],
+m1$fnum <- parse_number(m1$largest)
+m1 <- m1[order(m1$fnum), ]
+
+
+largestLoadings <- kable(m1[ ,c("fnum", "maximum", "itemNames", "itemDescriptions")],
+
                          digits = 2,
                          caption = "Largest Loading Per Item and Associated Factors, Sorted by Factor")
 kable_styling(largestLoadings, full_width = FALSE)
 
+
+```
+
+## Factor Statistics
+
+``` {r, perFactorStats, results="asis", echo=FALSE}
+### we want to show eigenvalues in this table too
+### eigenvalues are sum of squared loadings in fanal15$Vaccoutned
+edf <- t(fanal15$Vaccounted)
+edf <- data.frame(edf)
+edf$f <- rownames(edf)
+edf$fnum <- parse_number(edf$f)
+names(edf)
+
+edf <- edf[ ,c("fnum", "SS.loadings", "Proportion.Var", "Cumulative.Var", "Proportion.Explained","Cumulative.Proportion")]
+
+colnames(edf) <- c("Factor",
+                   "Eigenvalue (Sum-of-Squares Loadings",
+                   "Proportion of Variance",
+                   "Cumulative Proportion of Variance",
+                   "Proportion Explained Variance",
+                   "Cumulative Proportion of Explained Variance")
+
+edfK <- kable(edf, digits = 2,
+              caption = "Eigenvalues (Sums-of-squared loadings), cumulative variance, proportion of variance, proportion explained, and cumulative proportion for 15 factor model")
+kable_styling(edfK, full_width = FALSE)
+
+edfR <- edf %>%
+    mutate(across(where(is.numeric), round, 2))
+write_xlsx(edfR, "Table5.xlsx")
 
 ```
 
@@ -371,7 +406,7 @@ rel <- rel[ ,c("factor.y", "alpha", "TotalOmega", "HierarchicalOmega", "SubscleO
 colnames(rel) <- c("Factor", "alpha", "Total Omega", "Hierarchical Omega", "Subscale Omega")
 rel$Factor <- parse_number(rel$Factor)
 
-write_xlsx(rel, "Table5.xlsx")
+write_xlsx(rel, "Table6.xlsx")
 
 ```
 
