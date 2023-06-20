@@ -269,6 +269,8 @@ loadDF$largest <- colnames(loadDF)[apply(loadDF, 1, which.max)]
 ### sort df by factor
 loadDF <- loadDF[order(loadDF$largest), ]
 
+
+
 ```
 						   
 ### Largest Loading per Item
@@ -286,11 +288,24 @@ m1$fnum <- parse_number(m1$largest)
 m1 <- m1[order(m1$fnum), ]
 
 
-largestLoadings <- kable(m1[ ,c("fnum", "maximum", "itemNames", "itemDescriptions")],
 
-                         digits = 2,
-                         caption = "Largest Loading Per Item and Associated Factors, Sorted by Factor")
-kable_styling(largestLoadings, full_width = FALSE)
+largestLoadings <- m1[ ,c("fnum", "maximum", "itemNames", "itemDescriptions")]
+
+commTab <- data.frame(fanal15$communality)
+commTab$itemNames <- rownames(commTab)
+colnames(commTab) <- c("Communality", "itemNames")
+
+mc1 <- merge(commTab, largestLoadings, by = "itemNames")
+mc1$Communality <- round(mc1$Communality, 2)
+mc1$maximum <- round(mc1$maximum, 2)
+mc1 <- mc1[ ,c("fnum", "itemNames", "Communality", "maximum", "itemDescriptions")]
+mc1 <- mc1[order(mc1$fnum), ]
+colnames(mc1) <- c("Factor", "Item", "Communality", "Maximum Loading", "Description")
+mc1K <- kable(mc1, digits = 2,
+                         caption = "Communality, Largest Loading and factor sorted  by Factor")
+kable_styling(mc1K, full_width = FALSE)
+
+write_xlsx(mc1, "TableS7.xlsx")
 
 
 ```
