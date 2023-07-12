@@ -153,6 +153,13 @@ breedTab <- tbl_summary(d1,
                         statistic = all_categorical() ~ "{n} ({p}%)")
 breedTab
 
+### for Excel:
+breedTabOut <- modify_header(breedTab,
+                             label = "Breed",
+                             stat_0 = "N (1,117) (Percent)") %>%
+    gtsummary::as_tibble()
+write_xlsx(breedTabOut, "TableS4.xlsx")
+
 ``` 
 
 ### Breed Group
