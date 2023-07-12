@@ -1,0 +1,25 @@
+--- 
+title: Supplemental Table 1: Detector dog C-BARQ Item Descriptions
+author: Liz Hare
+output: html_output
+---
+
+
+``` {r, setup, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(writexl)
+
+allItems <- read.csv("data/cbarqItemDescriptions.csv")
+
+```
+
+``` {r, organizeTable, results="asis", echo=FALSE}
+
+###head(allItems)
+colnames(allItems) <- c("Item Name", "Item Descriptiom")
+
+write_xlsx(allItems, "TableS1.xlsx")
+
+
+```
