@@ -451,6 +451,15 @@ bigDescK <- kable(bigDesc,
 
 kable_styling(bigDescK)
 
+### make output Excel table
+bigDesc$itemNames <- rownames(bigDesc)
+bigDesc <- bigDesc[ , c(ncol(bigDesc), 2:ncol(bigDesc) - 1)]
+colnames(bigDesc) <- c("Item", "Number of Missing Items", "Mean", "Standard Deviation",
+                       "Minimum", "Maximum", "Skewness", "Kurtosis", "Shapiro-Wilk Statistic",
+                       "Shapiro-Wilk P-value")
+write_xlsx(bigDesc, "TableS5.xlsx")
+
+
 largeSkew <- bigDesc[bigDesc$skews < -2 & bigDesc$skews > 2, ]
 
 largeSkewItems <- rownames(bigDesc[bigDesc$Skewness < -2 | bigDesc$Skewness  > 2, ])
