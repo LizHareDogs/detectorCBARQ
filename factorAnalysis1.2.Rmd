@@ -71,6 +71,7 @@ preImputedCor <- lavaan::lavCor(ddItemsOrdered,
                                 ordered = names(ddItemsOrdered),
                                 missing = "pairwise",
                                 cor.smooth = TRUE)
+rownames(preImputedCor) <- colnames(preImputedCor)
 write.csv(round(preImputedCor, 3), file="data/polychoricCorrelations.csv", quote=FALSE, row.names=FALSE)
 
 preBartlett <- cortest.bartlett(preImputedCor, n = 1175)
