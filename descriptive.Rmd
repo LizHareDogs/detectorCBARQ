@@ -76,6 +76,7 @@ write.csv(dupdogsDF, file="dupdogs.csv", quote=FALSE, row.names=FALSE)
 ### Dog.ID is per record, so extra records can be delted by their ID numbers
 delRecs <- c(162150, 155420)
 d1 <- d1[!d1$Dog.ID %in% delRecs, ]
+save(d1, file = "d1.Rda")
 
 ```
 
