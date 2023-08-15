@@ -407,6 +407,9 @@ ddItems <- select(d1, c(TRAIN01:AGG20, FEAR21:SEPR34, EXCITE35:EXCITE38,
 ### table(sapply(ddItems, class))
 ### do they have any weird outliers
 ### sapply(ddItems, table, useNA="ifany")
+### set rownames to Dog.ID - hope it persists to factor solutions
+rownames(ddItems) <- d1$Dog.ID
+
 trainItems <- select(d1, TRAIN01:TRAIN08)
 ### class(d1$othersituationsagg)
 ### above variable character so not plotted-- all "othersituations* vars

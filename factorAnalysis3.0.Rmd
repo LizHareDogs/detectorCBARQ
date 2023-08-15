@@ -347,6 +347,8 @@ keys15 <- factor2cluster(fanal15)
 keysList15 <- keys2list(keys15)
 scores15 <- scoreItems(keysList15,
                        imputedNumericDF15)
+save(scores15, file = "data/3.0/scores15.Rda")
+
 
 alphas <- data.frame(t(scores15$alpha))
 alphas$factor <- rownames(alphas)
@@ -444,7 +446,7 @@ scoreTabK <- kable(scoreTab, digits=2,
                    caption = "Mean, Standard Deviation, and Median for Each of 15 Factors")
 kable_styling(scoreTabK, full_width = FALSE)
 
-write_xlsx(scoreTab, "Table6.xlsx")
+write_xlsx(scoreTab, "Table7.xlsx")
 
 
 ```

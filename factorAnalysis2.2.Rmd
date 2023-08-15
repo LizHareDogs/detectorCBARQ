@@ -1,0 +1,248 @@
+---
+title: "Factor Analysis for Detector Dog C-BARQ for Combined Phase 1 and Phase 2 Data"
+subtitle: "Version 2.2 of Combined Factor Analysis (No Chasing Data) Using Items with Communality greater than or equal to0.40 from analysis 1.0. Excluding AGG13."
+author:
+    name: Liz Hare, PhD
+    email: lizhare@gmail.com 
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        toc: true
+        number_sections: true
+---
+
+``` {r, setup, echo=FALSE}
+library(knitr)
+library(kableExtra)
+library(gtsummary)
+library(psych)
+library(lavaan)
+library(EFAtools)
+library(missMDA)
+library(gdata)
+	library(Matrix) ## make sure matrices are positive definite withnearPD()
+
+load("data/ddCBARQnumeric.Rda")
+load("data/ddCBARQordered.Rda")
+descItems <- read.csv("data/cbarqItemDescriptions.csv")
+
+
+```
+
+
+``` {r, removeItems, include=FALSE}
+drop12 <- c("TRAIN02", "TRAIN05", "TRAIN06", "TRAIN08",
+                         "AGG11", "AGG12", "AGG13", "AGG17",
+                         "FEAR22", "FEAR29",
+                         "ATT39", "ATT40", "ATT41", "ATT42",
+                         "IMP49", "MISC50", "MISC51", "MISC57","MISC58",
+                         "MISC60", "MISC63", "MISC68", "MISC69",
+            "MISC70", "MISC71")
+ddNum12 <- ddItems[ , -which(names(ddItems) %in% drop12)]
+ddOrd12 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop12)]
+
+drop13 <- c("TRAIN02", "TRAIN05", "TRAIN06", "TRAIN08",
+                        "AGG11", "AGG12", "AGG13", "AG17",
+                        "FEAR22",
+                        "ATT39", "ATT40", "ATT41", "ATT42",
+                        "IMP49", "MISC50", "MISC51", "MISC57", "MISC58",
+                        "MISC60", "MISC63", "MISC68", "MISC69", "MISC70", "MISC71")
+ddNum13 <- ddItems[ , -which(names(ddItems) %in% drop13)]
+ddOrd13 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop13)]
+
+drop14 <- c("TRAIN02", "TRAIN05", "TRAIN06", "TRAIN08",
+                        "AGG11", "AGG12", "AGG13", "AGG17",
+                        "ATT39", "ATT40", "ATT41", "ATT42",
+                        "FEAR22",
+                        "IMP49", "MISC50", "MISC51", "MISC57", "MISC58",
+                        "MISC63", "MISC68", "MISC69", "MISC70", "MISC71")
+ddNum14 <- ddItems[ , -which(names(ddItems) %in% drop14)]
+ddOrd14 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop14)]
+
+drop15 <- c("TRAIN05", "TRAIN06", "TRAIN08",
+                        "AGG11", "AGG12", "AGG13", "AGG17",
+                        "FEAR22", "FEAR25",
+                        "ATT40", "ATT42",
+                        "IMP49", "MISC50", "MISC51", "MISC57", "MISC58",
+                        "MISC63", "MISC68", "MISC70", "MISC71")
+ddNum15 <- ddItems[ , -which(names(ddItems) %in% drop15)]
+ddOrd15 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop15)]
+
+drop16 <- c("TRAIN05", "TRAIN06", "TRAIN08",
+                        "AGG11", "AGG12", "AGG13", "AGG17",
+                        "ATT40", "ATT42",
+                        "IMP49", "MISC50", "MISC57", "MISC58",
+                        "MISC63", "MISC68", "MISC70", "MISC71")
+ddNum16 <- ddItems[ , -which(names(ddItems) %in% drop16)]
+ddOrd16 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop16)]
+
+drop17 <- c("TRAIN05", "TRAIN06", "TRAIN08",
+                        "AGG11", "AGG12", "AGG13", "AGG17",
+                        "ATT42",
+                        "IMP49", "MISC50", "MISC57", "MISC58",
+                        "MISC68", "MISC70", "MISC71")
+ddNum17 <- ddItems[ , -which(names(ddItems) %in% drop17)]
+ddOrd17 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop17)]
+
+drop18 <- c("TRAIN05", "TRAIN06", "TRAIN08",
+                        "AGG11", "AGG12", "AGG13", "AGG17",
+                        "ATT42",
+                        "MISC50", "MISC51", "MISC57", "MISC58",
+                        "MISC68", "MISC70", "MISC71")
+ddNum18 <- ddItems[ , -which(names(ddItems) %in% drop18)]
+ddOrd18 <- ddItemsOrdered[ , -which(names(ddItemsOrdered) %in% drop18)]
+
+```
+
+# Context  
+
+## Overall Factor Analysis Steps  
+
+   1. Are the data suitable for factor analysis?  
+      - Bartlett's Sphericity Test 
+	  Tests whether correlations are different than zero across all the data. 
+	  If they are close to zero, there owuld be no common factors to find
+	  - Kaiser-Meyer-Olkin Criterion
+	  Test sampling adequacy, measures the degree to wich each variable predicts all other variables in the data set.  
+	  
+   2. Imputation of Missing Variables  
+      - Generate categorical values for missing data using Multiple Correspondence Analysis/Missing Fuzzy Average Method  
+	  
+	  
+   3. Calculate between-item Correlations  
+      - the polychoric (for orderd categorical variables) and regular Pearson correlation are calculated for later use in factor analysis and for checking other aspects of the factor analysis. The polychoric correlation is the input to the actual factor analysis.  
+	  
+   4. Estimate Number of Factors  
+      - Parallel analysis  
+      - Minimim Average Partial (MAP)  
+      
+   5. Run factor analysis for a range of possible number of factors  
+      - produces  
+         - measures of model fit  
+         - communalities (how much each item covaries with the other items)  
+         - loadings (correlation between item and factor(s))  
+
+   6. Evaluate Reliability of Model..
+      - alpha   
+      - omega  
+	  
+   7. Select best model (number of factors) given model fit statistics and judgement based on understanding of behavior.
+
+## Context Text Description
+
+All data were used in the factorAnalysis1.1.html document you already received.  
+
+A series of factoro analyses were run on all items in 
+the file factorAnalysis1.1.html. THe literature suggests 
+doing this so you can compare both statistical measures of 
+how well it fits, and also how logical the grouping of factors
+is according to knowledge of the subject. 
+
+This set of analyses showed that some items had really low communalities,
+meaning that they didn't covary much with any of the other items. This means they
+will not be robust parts of any factor, and they recommend that you remove 
+these from the analysis.
+
+Models with different numbers of factors had different numbers of items
+with communalities less than 0.4. So a new data set was made for each 
+number of factors, with only the items  with
+communalities of 0.4 or larger.
+
+Similarly, the loading represents the amount of variation in an item due to the factor 
+in which it is classified. Several items had low loadings (most of these items also had low 
+communalities). We removed items with loadings less than 0.32.
+
+
+Because each number of factors require a different data set 
+(different numbers of items), all the steps had to be rerun sstarting with
+imputation. Those are the models included in this document.
+
+	  
+# Factor Analyses
+
+Testing analyses from 12 - 18 factors.
+
+
+``` {r, runFAs, results="asis", echo=FALSE}
+src <- lapply(c(12:18), function(nfact) {
+    knit_expand(file = "fa2.2.Rmd")
+    })
+
+res = knitr::knit_child(text = unlist(src), quiet = TRUE)
+cat(res, sep = '\n')
+
+```
+
+# Model Comparisons
+
+``` {r, modelFitCompare, eval=TRUE, echo=FALSE}
+
+getFits <- function(x) {
+    y <- c(x$factors, x$TLI, x$STATISTIC, x$dof, x$PVAL)
+    return(y)
+}
+
+fits12 <- getFits(fanal12)
+fits13 <- getFits(fanal13)
+fits14 <- getFits(fanal14)
+fits15 <- getFits(fanal15)
+fits16 <- getFits(fanal16)
+fits17 <- getFits(fanal17)
+fits18 <- getFits(fanal18)
+
+fitTab <- data.frame(fits12, fits13, fits14, fits15, fits16, fits17, fits18)
+
+
+
+KMOS <- c(KMOoutput12$KMO,
+                   KMOoutput13$KMO,
+                   KMOoutput14$KMO,
+                   KMOoutput15$KMO,
+                   KMOoutput16$KMO,
+                   KMOoutput17$KMO,
+                   KMOoutput18$KMO)
+
+         bartlettChi <- c(postBartlett12$chisq,
+                          postBartlett13$chisq,
+                          postBartlett14$chisq,
+                          postBartlett15$chisq,
+                          postBartlett16$chisq,
+                          postBartlett17$chisq,
+                          postBartlett18$chisq)
+
+bartlettDF <- c(postBartlett12$df,
+                         postBartlett13$df,
+                         postBartlett14$df,
+                         postBartlett15$df,
+                         postBartlett16$df,
+                         postBartlett17$df,
+                         postBartlett18$df)
+
+bartlettP <- c(postBartlett12$p.value,
+                        postBartlett13$p.value,
+                        postBartlett14$p.value,
+                        postBartlett15$p.value,
+                        postBartlett16$p.value,
+                        postBartlett17$p.value,
+                        postBartlett18$p.value)
+
+fitTab2 <- rbind(bartlettChi, bartlettDF, bartlettP, KMOS, fitTab)
+
+rownames(fitTab2) <- c("Bartlett test chi-square",
+                      "Bartlett test degrees of freedom",
+                      "Bartlett test p-value",
+                      "KMO",
+                      "factors",
+                      "Tucker-Lewis Index",
+                      "Chi-square",
+                      "Degrees of freedom for chi-square",
+                      "P-value for chi-square")
+
+fitTab2 <- fitTab2[c(1:4, 6:9),]
+         
+fitTab2K <- kable(fitTab2, digits = c(2, 0, 3, 2, 2, 2, 0, 3), row.names = TRUE,
+                 caption = "Model fit statistics for each number of factors. TLI = Tucker-Lewis index of factoring reliability")
+kable_styling(fitTab2K)
+
+    
+```
