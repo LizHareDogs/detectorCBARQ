@@ -63,7 +63,7 @@ postImputedFactors15 <- imputationResults15$completeObs
 imputedChar15 <- lapply(postImputedFactors15, as.character)
 imputedNumeric15 <- lapply(imputedChar15, as.numeric)
 imputedNumericDF15 <- data.frame(imputedNumeric15)
-save(imputedNumericDF15, file="data/3.0/imputedNumericDF3.0")
+save(imputedNumericDF15, file="data/3.0/imputedNumericDF3.0.Rda")
 write.csv(imputedNumericDF15, file="data/3.0/imputedNumeric15.csv", quote = FALSE, row.names=FALSE)
 
 ```
