@@ -1,0 +1,125 @@
+```
+title: "Examining the Relationship between WDC-BARQ Subscales and Handlers' Behavior Ratings"
+author:
+    name: Liz Hare, PhD
+    email: lizhare@gmail.com 
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        toc: true
+        number_sections: true
+---
+
+
+``` {r, setup, echo=FALSE}
+library(knitr)
+library(kableExtra)
+library(correlation)
+library(dplyr)
+
+load("data/imputedNumericDF.Rda")
+load("d1.Rda")
+
+
+
+```
+
+``` {r, organizeData, results="asis", echo=FALSE}
+
+
+demog <- select(d1, Dog.ID, breedF, breedGroupF, sexF, neutered, workingStatusF,
+                scentrating, behaviorrating)
+
+corData <- cbind(demog, imputedNumericDF)
+
+### calculate subscale scores
+
+corData2 <- corData %>%
+    mutate(
+        strangerFear = (FEAR21 + FEAR23 + FEAR24 + FEAR28)/4,
+        play = (PLAY43 + PLAY44 + PLAY45 + PLAY46)/4,
+        distractibility = (MISC62 + MISC64 + MISC65 + MISC66 + MISC67 + TRAIN07)/6,
+        dogAgg = (AGG16 + AGG18 + AGG19 + AGG20)/4,
+        basophobia = (MISC54 + MISC55 + MISC56)/3,
+        excit = (EXCITE35 + EXCITE36 + EXCITE37 + EXCITE38)/4,
+        sep = (SEPR32 + SEPR33 + SEPR34)/3,
+        train = (TRAIN01 + TRAIN02 + TRAIN03 + TRAIN04)/4,
+        dogFear = (FEAR27 + FEAR31)/2,
+        foodFocus = (MISC52 + MISC53)/2,
+        touch = (FEAR26 + FEAR29 + FEAR30)/3,
+        strAgg = (AGG09 + AGG10 + AGG14 + AGG15)/4,
+        energy = (MISC60 + MISC61)/2,
+        att = (ATT39 + ATT41)/2,
+        impulsivity = (IMP47 + IMP48 + MISC59)/3)
+
+```
+
+# Correlations
+
+I used Pearson's correlations for the subscales, which are usually used 
+for numeric variables. Although the individual items are categorical, I think 
+we can treat the should treat the averages/subscales as quantitative. Let me 
+know if you want to use other types of correlation.
+
+``` {r, calculate correlations, results="asis", echo=FALSE}
+subscales <- c("strangerFear", "play", "distractibility", "dogAgg",
+               "basophobia", "excit", "sep", "train", "dogFear",
+               "foodFocus", "touch", "strAgg", "energy", "att", "impulsivity")
+
+corScentAbility <- corData2 %>%
+    correlation(
+        select = subscales,
+        select2 = "scentrating")
+
+corBehavior <- corData2 %>%
+    correlation(
+        select = subscales,
+        select2 = "behaviorrating")
+
+
+```
+
+## Scent ABility Rating
+
+``` {r, scentAbility, results="asis", echo=FALSE}
+
+subscales <- c("strangerFear", "play", "distractibility", "dogAgg",
+               "basophobia", "excit", "sep", "train", "dogFear",
+               "foodFocus", "touch", "strAgg", "energy", "att", "impulsivity")
+subscaleNames <- c("Stanger-directed fear", "Playfulness", "Distractibility",
+                   "Dog-directed aggression", "Basophobia", "Excitability",
+                   "Separation-related issues", "Trainability", "Dog-directed fear",
+                   "Food FOcus", "Touch sensitivity", "Stranger-directed aggression",
+                   "Energy", "Attention/Attachment", "Impulsivity")
+
+
+keepCols <- c("r", "CI", "CI_low", "CI_high", "t", "df_error", "p", "n_Obs")
+
+corScentAbility <- corScentAbility %>%
+    select(c(r:p, n_Obs))
+rownames(corScentAbility) <- subscaleNames
+
+colnames(corScentAbility) <- c("Correlation", "Confidence Interval",
+                              "CI-low", "CI-high", "t", "df", "p", "Number of Observations")
+
+
+corScentAbilityK <- kable(corScentAbility, digits = 2) %>%
+    kable_styling(full_width = FALSE)
+corScentAbilityK
+
+```
+
+## Behavior Rating
+
+``` {r, behaviorSubscale Correlation, results="asis", echo=FALSE}
+corBehavior <- corBehavior %>%
+    select(c(r:p, n_Obs))
+rownames(corBehavior) <- subscaleNames
+colnames(corBehavior) <- c("Correlation", "Confidence Interval",
+                              "CI-low", "CI-high", "t", "df", "p", "Number of Observations")
+corBehaviorK <- kable(corBehavior, digits=2) %>%
+    kable_styling(full_width = FALSE)
+corBehaviorK
+
+
+```
