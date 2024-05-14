@@ -1,0 +1,37 @@
+---
+title: "Table of Most Frequent Breeds in WDC-BARQ Dataset"
+author:
+    name: Liz Hare, PhD
+    email: lizhare@gmail.com 
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        toc: true
+        number_sections: true
+---
+
+```{r, setup, echo=FALSE}
+library(knitr)
+library(kableExtra)
+library(dplyr)
+
+load("d1.Rda")
+
+```
+
+## Frequencies of Most Common Breeds
+
+``` {r, commonBreedTab, results="asis", echo=FALSE}
+
+breeds <- d1 %>%
+    select(Dog.ID, Breed) %>%
+    group_by(Breed) %>%
+    count(Breed)
+breeds$percent <- (breeds$n/nrow(d1))*100
+breeds$percent <- round(breeds$percent, 1)
+
+breeds5 <- filter(breeds, percent >= 5.0)
+
+write.csv(breeds5, row.names=FALSE, file="frequentBreedTab.csv", quote=FALSE)
+
+```
